@@ -1,0 +1,59 @@
+<div id="modaledit" class="modal fade" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Update Data User</h4>
+      </div>
+      <div class="modal-body">
+        <form id="updateForm" method="POST">
+              {{ form1.hidden_tag() }}
+
+          {% for field in data_list1 %}
+            <div class="form-group">
+              <label for="{{ field.name }}">{{ field.label }}</label>
+
+              {% if field.input_type == "select" %}
+                <select id="{{ field.name }}" name="{{ field.name }}" class="form-control">
+                  {% for opt in field.options %}
+                    <option value="{{ opt[1] }}" 
+                      {% if field.value|string == opt[1]|string %}selected{% endif %}>
+                      {{ opt[0] }}
+                    </option>
+                  {% endfor %}
+                </select>
+
+              {% elif field.input_type == "password" %}
+                <div class="input-group">
+                  <input type="password" id="{{ field.name }}" name="{{ field.name }}" 
+                         class="form-control" value="{{ field.value }}">
+                  <div class="input-group-append">
+                    <span class="input-group-text">
+                      <input type="checkbox" onclick="togglePassword('{{ field.name }}')"> Show
+                    </span>
+                  </div>
+                </div>
+
+              {% else %}
+                <input type="{{ field.input_type }}" id="{{ field.name }}" 
+                       name="{{ field.name }}" class="form-control" 
+                       value="{{ field.value }}">
+              {% endif %}
+            </div>
+          {% endfor %}
+
+          <div class="form-group">
+            <button class="btn btn-success" type="submit">Update</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function togglePassword(id) {
+  let input = document.getElementById(id);
+  input.type = (input.type === "password") ? "text" : "password";
+}
+</script>

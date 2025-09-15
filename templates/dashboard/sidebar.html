@@ -1,0 +1,15 @@
+<nav class="sidebar-nav">
+  <ul id="sidebarnav" class="pt-4">
+    {% for item in sidebar_items %}
+      <li class="sidebar-item">
+        <a class="sidebar-link waves-effect waves-dark sidebar-link"
+           href="{{ item.url_page }}"
+           aria-expanded="true"
+           {% if item.name_page in ['Insert File', 'Edit File', 'Restart Server', 'Delete File'] %}{% endif %}>
+          <i class="{{ item.icon_page }}"></i>
+          <span class="hide-menu">{{ item.name_page }}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</nav>

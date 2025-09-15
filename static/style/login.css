@@ -1,0 +1,137 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+
+    /* Ganti background dengan image */
+    background: url("../assets/bg.jpg") no-repeat center center fixed;
+    background-size: cover;
+
+    font-family: 'Jost', sans-serif;
+}
+
+.main {
+    width: 350px;
+    height: auto;
+    background: #4a9fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    box-sizing: border-box;
+}
+
+button i {
+    margin-right: 8px;
+}
+
+
+  .version-info {
+      margin-top: 20px;
+      color: black;
+      /* White text color */
+      text-align: center;
+      font-size: 14px;
+  }
+
+.logo-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+img {
+    width: 120px;
+    height: auto;
+}
+
+input {
+    width: 90%;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: #fafafa;
+}
+
+.google-btn-container {
+    margin-top: 15px;
+    text-align: center;
+}
+
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #fff;
+    color: #444;
+    font-size: 1em;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: box-shadow 0.3s, transform 0.2s;
+}
+
+.google-btn img {
+    width: 20px;
+    height: 20px;
+}
+
+.google-btn:hover {
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    transform: scale(1.02);
+}
+
+
+
+button {
+    width: 100%;
+    padding: 12px 0;
+    background: linear-gradient(135deg, #6b4226, #a97449); /* cokelat ke emas */
+    color: #fff;
+    font-size: 1em;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+}
+
+button:hover {
+    background: linear-gradient(135deg, #8b5e3c, #d4af37); /* hover lebih keemas */
+    transform: scale(1.05);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+/* Flash message styling inside form */
+.flash-container {
+    margin-bottom: 20px;
+    /* Adjust margin for spacing */
+}
+
+.flash {
+    background: #d32f2f;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    display: none;
+    /* Hidden by default */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

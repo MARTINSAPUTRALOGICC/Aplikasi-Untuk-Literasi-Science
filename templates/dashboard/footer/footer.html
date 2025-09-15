@@ -1,0 +1,307 @@
+    <!-- Bootstrap tether Core JavaScript -->
+    <script src="{{ url_for('static', filename='style/dashboard/libs/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/libs/perfect-scrollbar/dist/perfect-scrollbar.jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/extra-libs/sparkline/sparkline.js') }}"></script>
+    <!--Wave Effects -->
+    <script src="{{ url_for('static', filename='style/dashboard/dist/js/waves.js') }}"></script>
+        <!--Menu sidebar -->
+    <script src="{{ url_for('static', filename='style/dashboard/dist/js/sidebarmenu.js') }}"></script>
+        <!--Custom JavaScript -->
+    <script src="{{ url_for('static', filename='style/dashboard/dist/js/custom.min.js') }}"></script>
+
+    <!--This page JavaScript -->
+    <!-- <script src="../dist/js/pages/dashboards/dashboard1.js"></script> -->
+    <!-- Charts js Files -->
+    <script src="{{ url_for('static', filename='style/dashboard/libs/flot/excanvas.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/libs/flot/jquery.flot.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/libs/flot/jquery.flot.pie.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/libs/flot/jquery.flot.time.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/libs/flot/jquery.flot.stack.js') }}"></script>
+     <script src="{{ url_for('static', filename='style/dashboard/libs/flot/jquery.flot.crosshair.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='style/dashboard/extra-libs/sparkline/sparkline.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/extra-libs/multicheck/datatable-checkbox-init.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/extra-libs/multicheck/jquery.multicheck.js') }}"></script>
+    <script src="{{ url_for('static', filename='style/dashboard/extra-libs/DataTables/datatables.min.js') }}"></script>
+
+    <script>
+   $(function () {
+  "use strict";
+  var url = window.location + "";
+  var path = url.replace(
+    window.location.protocol + "//" + window.location.host + "/",
+    ""
+  );
+
+  // Debugging output
+  console.log("Clearing selected class");
+
+  // Clear the "selected" class from all items
+  $("#sidebarnav a").removeClass("selected");
+
+  var element = $("ul#sidebarnav a").filter(function () {
+    return this.href === url || this.href === path;
+  });
+
+  // ... Rest of your existing code ...
+});
+
+
+    </script>
+ 
+    <script>
+      /****************************************
+       *       Basic Table                   *
+       ****************************************/
+            $(document).ready(function() {
+                $('#zero_config').DataTable({
+                  
+              
+                });
+            });
+            
+    </script>
+   
+
+
+<script>
+$(document).ready(function() {
+
+    function initUserSelect() {
+        $('#userSelect').select2({
+            width: '100%',
+            placeholder: "-- Cari User --",
+            dropdownParent: $('#assignForm')
+        });
+        $('.select2-results__options').css('max-height', '200px').css('overflow-y', 'auto');
+    }
+
+    initUserSelect();
+
+    // Event change Website
+    $('#websiteSelect').change(function() {
+        let website_id = $(this).val();
+
+        if (website_id) {
+            $.ajax({
+                url: `/get_users_by_website/${website_id}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(users) {
+                    let options = '<option value="">-- Pilih User --</option>';
+                    users.forEach(function(u) {
+                        options += `<option value="${u.id}">${u.name}</option>`; // id_account sebagai value
+                    });
+
+                    $('#userSelect').select2('destroy').html(options);
+                    initUserSelect();
+
+                    // Hapus checklist sebelumnya saat ganti website
+                    $('input[name="pages[]"]').prop('checked', false);
+                },
+                error: function() {
+                    alert("Gagal mengambil user!");
+                }
+            });
+        } else {
+            $('#userSelect').select2('destroy').html('<option value="">-- Pilih User --</option>');
+            initUserSelect();
+            $('input[name="pages[]"]').prop('checked', false);
+        }
+    });
+
+
+    
+
+    // Event change User
+    $('#userSelect').on('change', function() {
+        let user_id = $(this).val(); // id_account
+        if (user_id) {
+            $.ajax({
+                url: `/get_page_setting/${user_id}`, // endpoint menerima id_account
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('input[name="pages[]"]').each(function() {
+                        let page_val = $(this).val(); // page1, page2, ...
+                        $(this).prop('checked', data[page_val] === "2");
+                    });
+                },
+                error: function() {
+                    alert("Gagal mengambil setting halaman user!");
+                    $('input[name="pages[]"]').prop('checked', false);
+                }
+            });
+        } else {
+            $('input[name="pages[]"]').prop('checked', false);
+        }
+    });
+    
+
+    // Form submit
+ // Form submit
+    // Form submit
+$('#assignForm').submit(function(e) {
+    e.preventDefault();
+    let formData = $(this).serialize();
+
+    $.ajax({
+        url: "/updatePageSetting",
+        type: "POST",
+        data: formData,
+        success: function(resp) {
+            if (resp.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: resp.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    // Redirect setelah alert hilang
+                    window.location.href = "/PageSetting";
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: resp.error
+                });
+            }
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error Server',
+                text: xhr.responseText
+            });
+        }
+    });
+});
+
+
+
+
+
+});
+</script>
+
+
+<script>
+$(document).ready(function() {
+
+    function initUserSelectCrud() {
+        $('#userSelectCrud').select2({
+            width: '100%',
+            placeholder: "-- Cari User --",
+            dropdownParent: $('#assignFormCrud')
+        });
+        $('.select2-results__options').css('max-height', '200px').css('overflow-y', 'auto');
+    }
+
+    initUserSelectCrud();
+
+    // Event change Website
+    $('#websiteSelectCrud').change(function() {
+        let website_id = $(this).val();
+
+        if (website_id) {
+            $.ajax({
+                url: `/get_users_by_website/${website_id}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(users) {
+                    let options = '<option value="">-- Pilih User --</option>';
+                    users.forEach(function(u) {
+                        options += `<option value="${u.id}">${u.name}</option>`;
+                    });
+
+                    $('#userSelectCrud').select2('destroy').html(options);
+                    initUserSelectCrud();
+
+                    // Reset checklist
+                    $('input[name="settings[]"]').prop('checked', false);
+                },
+                error: function() {
+                    alert("Gagal mengambil user!");
+                }
+            });
+        } else {
+            $('#userSelectCrud').select2('destroy').html('<option value="">-- Pilih User --</option>');
+            initUserSelectCrud();
+            $('input[name="settings[]"]').prop('checked', false);
+        }
+    });
+
+    // Event change User
+    $('#userSelectCrud').on('change', function() {
+        let user_id = $(this).val();
+        if (user_id) {
+            $.ajax({
+                url: `/get_crud_setting/${user_id}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('input[name="settings[]"]').prop('checked', false);
+
+                    if (data.create_setting === "2") $('#create').prop('checked', true);
+                    if (data.update_setting === "2") $('#update').prop('checked', true);
+                    if (data.delete_setting === "2") $('#delete').prop('checked', true);
+                    if (data.table_setting === "2") $('#table').prop('checked', true);
+                },
+                error: function() {
+                    alert("Gagal mengambil setting CRUD user!");
+                    $('input[name="settings[]"]').prop('checked', false);
+                }
+            });
+        } else {
+            $('input[name="settings[]"]').prop('checked', false);
+        }
+    });
+
+    // Form submit
+    $('#assignFormCrud').submit(function(e) {
+        e.preventDefault();
+        let formData = $(this).serialize();
+
+        $.ajax({
+            url: "/updateCRUD",
+            type: "POST",
+            data: formData,
+            success: function(resp) {
+                if (resp.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: resp.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = "/PageSetting";
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: resp.error
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Server',
+                    text: xhr.responseText
+                });
+            }
+        });
+    });
+
+});
+</script>
+
+
+
+  </body>
+</html>
+  

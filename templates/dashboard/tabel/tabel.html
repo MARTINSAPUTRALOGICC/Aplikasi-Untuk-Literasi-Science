@@ -1,0 +1,269 @@
+      <div class="flash-container">
+                                  {% with messages = get_flashed_messages(with_categories=true) %}
+                                  {% if messages %}
+                                  {% for category, message in messages %}
+                                  <div class="flash {{ category }}">{{ message }}</div>
+                                  {% endfor %}
+                                  {% endif %}
+                                  {% endwith %}
+                                </div>
+
+                        
+        <div class="table-responsive" width="100%">
+        
+        <table id="datanilaiuser" class="table table-striped table-bordered">
+        <thead>
+        
+            <tr style="text-align: center; font-size: 16px;">
+                {% for column_name in column_names %}
+                    <th>{{ column_name }}</th>
+                {% endfor %}
+        
+            </tr>
+        </thead>
+        
+        <tbody>
+
+    </tbody>
+    </table>
+
+
+    {% include "Dashboard/modal/modal_edit.html" %}
+
+</div>
+<script>
+const updatePermission = {{ update_ui }};
+const deletePermission = {{ delete_ui }};
+let currentPage = "{{ page }}"; // misal "account" atau "user"
+
+const ajaxUrl = "{{ ajax_post }}";
+
+var columns = {{ columns | tojson }};
+
+// Render kolom "status" (index 6) dengan warna
+if (columns[6]) {
+    columns[6].render = function(data) {
+        if (data === "No Active") {
+            return `<span style='color: red; font-weight: bold;'>${data}</span>`;
+        } else if (data === "Active") {
+            return `<span style='color: green; font-weight: bold;'>${data}</span>`;
+        }
+        return data;
+    };
+}
+
+// Render kolom Action (biasanya kolom terakhir)
+var actionColIndex = columns.findIndex(c => c.data === null || c.data === "Action" || c.data === "id");
+
+// Jika kolom Action ditemukan
+if (actionColIndex !== -1) {
+    columns[actionColIndex].render = function(data, type, row) {
+        let buttons = "";
+        if (updatePermission === 2) {
+            buttons += `<a href='javascript:void(0);' class='btn btn-warning btn-xs' onclick='loadEditModal("${row.id}")'>Edit</a>&nbsp;&nbsp;`;
+        }
+        if (deletePermission === 2) {
+            buttons += `<a href='javascript:void(0);' class='btn btn-danger btn-xs delete-button' data-id='${row.id}'>Delete</a>`;
+        }
+        return buttons || "-";
+    };
+}
+
+
+$(document).ready(function() {
+    $('#datanilaiuser').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: ajaxUrl,
+            type: 'POST',
+            error: function(xhr) {
+                console.error("Ajax Error:", xhr.responseText);
+                alert("Terjadi kesalahan saat memuat data.");
+            }
+        },
+        columns: columns,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        pageLength: 10,
+        searching: true,
+        ordering: false,
+        createdRow: function(row) {
+            $(row).css('font-size', '15px');
+        }
+    });
+});
+
+$('#datanilaiuser').on('click', '.delete-button', function() {
+    var productId = $(this).data('id');
+    Swal.fire({
+        title: 'Apakah Anda yakin?',
+        text: "Record ini akan dihapus dan tidak dapat dikembalikan!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: `{{accountedelete}}`, // sesuaikan dengan route blueprint
+                type: 'POST', // method sesuai Flask route
+                success: function(response) {
+                    if (response.status === "success") {
+                        Swal.fire(
+                            'Dihapus!',
+                            response.message,
+                            'success'
+                        ).then(() => {
+                            // Reload tabel atau redirect
+                            location.reload(); // reload halaman agar data terbaru tampil
+                        });
+                    } else {
+                        Swal.fire(
+                            'Gagal!',
+                            'Gagal menghapus Record: ' + response.message,
+                            'error'
+                        );
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire(
+                        'Terjadi Kesalahan!',
+                        'Terjadi kesalahan saat menghapus Record. Silakan coba lagi.',
+                        'error'
+                    );
+                }
+            });
+        }
+    });
+});
+
+
+
+function loadEditModal(productId) {
+    $.ajax({
+        url: '{{get_ajax}}',
+        type: 'GET',
+        data: { id: productId },
+        success: function(data) {
+            let fields = [];
+
+            // Mapping fields berdasarkan page
+            if (currentPage === "account") {
+                fields = [
+                    { id: 'name', type: 'input', value: data.name || '' },
+                    { id: 'password', type: 'input', value: data.password || '' },
+                    { id: 'level_user', type: 'select', value: data.level_user, options: data.FlagLevel },
+                    { id: 'flag_active', type: 'select', value: data.flag_active, options: data.FlagActive },
+                    { id: 'website_id', type: 'select', value: data.website_id, options: data.FlagWebsite }
+                ];
+            } else if (currentPage === "leveluser") {
+                fields = [
+                    { id: 'name_level', type: 'input', value: data.name_level || '' }
+                 
+                ];
+            } else if (currentPage === "website") {
+               fields = [
+                    { id: 'name_website', type: 'input', value: data.name_website || '' }
+                 
+                ];
+            } else if (currentPage === "sidebar") {
+               fields = [
+                    { id: 'name_page', type: 'input', value: data.name_page || '' },
+                    { id: 'icon_page', type: 'input', value: data.icon_page || '' },
+                    { id: 'url_page', type: 'input', value: data.url_page || '' }
+                 
+                ];
+            }
+
+
+            // Render ke form
+            fields.forEach(function(field) {
+                let el = $('#' + field.id);
+                if (field.type === 'input') {
+                    el.val(field.value);
+                } else if (field.type === 'select') {
+                    el.html('');
+                    field.options.forEach(function(option) {
+                        el.append(
+                            `<option value="${option.value}" ${option.value == field.value ? 'selected' : ''}>${option.label}</option>`
+                        );
+                    });
+                }
+            });
+
+            // Set action form sesuai ID
+           if (currentPage === "account") {
+                $('#updateForm').attr('action', `{{updateaccount}}`);
+            }
+           else if (currentPage === "leveluser") {
+                $('#updateForm').attr('action', `{{updateaccount}}`);
+            } else if (currentPage === "website") {
+                $('#updateForm').attr('action', `{{updateaccount}}`);
+            }
+            else if (currentPage === "sidebar") {
+                $('#updateForm').attr('action', `{{updateaccount}}`);
+            }
+
+            // Tampilkan modal
+            $('#modaledit').modal('show');
+        }
+    });
+}
+
+
+
+$('#updateForm').submit(function(event) { 
+    event.preventDefault(); 
+    var formData = new FormData(this);
+
+    $.ajax({ 
+        url: $(this).attr('action'), 
+        type: 'POST', 
+        data: formData, 
+        processData: false,  
+        contentType: false,  
+        dataType: 'json',      // <-- Pastikan jQuery parse JSON
+        success: function(response) { 
+            if (response.success) { 
+                Swal.fire({ 
+                    title: 'Berhasil!', 
+                    text: response.message,  // <-- ambil dari server
+                    icon: 'success',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'OK'
+                }).then(() => { 
+                    $('#modaledit').modal('hide'); 
+                    location.reload(); 
+                }); 
+            } else { 
+                Swal.fire({ 
+                    title: 'Gagal!', 
+                    text: response.message || response.error, 
+                    icon: 'error',
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'OK'
+                }); 
+            } 
+        }, 
+        error: function(xhr) {
+            let errorMessage = "Terjadi kesalahan!";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            Swal.fire({
+                title: "Informasi!!!",
+                text: errorMessage,
+                icon: "error",
+                confirmButtonColor: "#d33",
+                confirmButtonText: "OK"
+            });
+        }
+    });
+});
+
+
+
+
+</script>

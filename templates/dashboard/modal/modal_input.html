@@ -1,0 +1,90 @@
+
+<div id="myModal" class="modal fade" role="dialog">
+
+
+   <div class="modal-dialog">
+
+
+      <div class="modal-content">
+
+
+         <div class="modal-header">
+
+
+
+
+            <h4 class="modal-title">Insert {{cardtitle}}</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+
+                
+            
+
+         </div>
+
+
+         <div class="modal-body">
+
+
+         <form action="{{ url_for(insertaccount) }}" method="POST">
+
+              {{ form.hidden_tag() }}
+               <div class="form-group">
+            
+       
+                <div class="form-group">
+                  {% for data_item in data_list %}
+                
+                 &nbsp; <label>{{ data_item.label }}:</label>
+              
+                    {% if data_item.input_type == "select" %}
+
+                                <select class="form-control" name="{{ data_item.name }}" required="1">
+                          {% for option_value, option_label in data_item.options %}
+                                    {% if option_value == '1' %}
+                            
+                                    <option value="{{ option_value }}" selected>{{ option_label }}</option>
+                              
+                                    {% else %}
+                          
+                                       <option value="{{ option_label }}">{{ option_value }}</option>
+                                    {% endif %}
+                                 {% endfor %}
+                          
+
+                                </select>
+                            {% else %}
+                                            <input type="{{ data_item.input_type }}" class="form-control" name="{{ data_item.name }}" required="1">
+                            {% endif %}
+                   <br>
+                {% endfor %}
+                
+                </div> 
+               
+               
+
+
+               <div class="form-group">
+
+    <br>
+                  <button class="btn btn-success" type="submit">Insert Data</button>
+
+
+               </div>
+
+
+            </form>
+
+
+         </div>
+
+
+       
+
+
+      </div>
+
+
+   </div>
+
+
+</div>

@@ -1,0 +1,12 @@
+{% include "Dashboard/header/head.html" %}
+
+{% if page4 == '2' %}
+
+    {% include "Dashboard/body/body_setting.html" %}
+{% elif page5 == '2' %}
+    {% include "Dashboard/body/body_crud.html" %}
+{% else %}
+    {% include "Dashboard/body/body.html" %}
+{% endif %}
+
+{% include "Dashboard/footer/footer.html" %}

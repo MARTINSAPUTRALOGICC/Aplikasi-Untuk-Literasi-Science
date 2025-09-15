@@ -1,0 +1,52 @@
+from flask_wtf import FlaskForm
+from wtforms import (
+    StringField,
+    IntegerField,
+    PasswordField,
+    SubmitField,
+    DateField,
+    validators,
+    DateTimeField,
+    RadioField,
+    
+)
+from flask_wtf.file import FileField
+from wtforms.validators import DataRequired, InputRequired, Email,Optional
+from datetime import date
+
+
+class LoginForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    password = PasswordField("password", validators=[DataRequired()])
+    submit_login = SubmitField("submit_login")
+
+
+class RoleForm(FlaskForm):
+    name_level = StringField("name_level", validators=[DataRequired()])
+
+
+class WebsiteForm(FlaskForm):
+    name_website = StringField("name_website", validators=[DataRequired()])
+
+
+class PageForm(FlaskForm):
+    name_page = StringField("name_page", validators=[DataRequired()])
+    icon_page = StringField("icon_page", validators=[DataRequired()])
+    url_page = StringField("url_page", validators=[DataRequired()])
+
+class AccountForm(FlaskForm):
+    name = StringField("name", validators=[DataRequired()])
+    email = StringField("email", validators=[DataRequired(), Email()])
+    password = PasswordField("password", validators=[DataRequired()])
+    level_user = IntegerField("level_user", validators=[DataRequired()])
+    website_id = IntegerField("website_id", validators=[DataRequired()])
+    flag_active = IntegerField("flag_active", validators=[DataRequired()])
+
+
+# di form_field.py
+class AccountUpdate(FlaskForm):
+    name = StringField("name", validators=[DataRequired()])
+    password = PasswordField("password", validators=[Optional()])
+    level_user = IntegerField("level_user", validators=[DataRequired()])
+    website_id = IntegerField("website_id", validators=[DataRequired()])
+    flag_active = IntegerField("flag_active", validators=[DataRequired()])
