@@ -20,7 +20,7 @@ from flask import (
     make_response,
 )
 
-from model import db, model_useraccount, model_level, model_website,model_page,model_page_setting,model_setting_crud
+from model import db, model_useraccount, model_level,model_page,model_page_setting,model_setting_crud
 
 from form_field import RoleForm, AccountUpdate, WebsiteForm, PageForm
 from constant import Dashboard, Leveluser, Webpage, Sidebarpage
@@ -233,149 +233,8 @@ def sidebarupadate(id_page):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@website_bp.route("/delete/<int:record_id>", methods=["POST"])
-def delete_website(record_id):
-    result = delete_record(model_website, record_id)
-    if result.get("success"):
-        return jsonify({"status": "success", "message": result.get("message")})
-    else:
-        return jsonify({"status": "error", "message": result.get("error")}), 400
-
-
 import os
 from datetime import datetime
-
-
-@websiteaccount_bp.route("/websiteaccount", methods=["GET", "POST"])
-def websiteaccount():
-    if request.method == "POST":
-        website_user = request.form.get("name_website", "").strip()
-        log_file = os.path.join(current_app.root_path, "website_log.txt")
-
-        def write_log(message):
-            with open(log_file, "a", encoding="utf-8") as f:
-                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
-
-        if not website_user:
-            flash("❌ Name Website tidak boleh kosong!", "warning")
-            write_log("Gagal: Name Website kosong")
-            return redirect(url_for(Webpage))
-
-        # Sanitize nama tabel agar valid
-        table_name = re.sub(r"\W+", "_", website_user.lower())
-
-        # ===== Cek master =====
-        existing = model_website.query.filter_by(name_website=website_user).first()
-        if existing:
-            flash("❌ Website sudah ada!", "warning")
-            write_log(f"Gagal: Website '{website_user}' sudah ada")
-            return redirect(url_for(Webpage))
-
-        # ===== Simpan master =====
-        result = create_record(model_website, name_website=website_user)
-        if not result["success"]:
-            flash(f"Gagal: {result['error']}", "danger")
-            write_log(
-                f"Gagal simpan master website '{website_user}': {result['error']}"
-            )
-            return redirect(url_for(Webpage))
-
-        # ===== Buat tabel chat dinamis =====
-        class_attrs = {
-            "__tablename__": table_name,
-            "id_list": db.Column(db.Integer, primary_key=True, autoincrement=True),
-            "id_admin": db.Column(db.Integer, nullable=False),
-            "id_player": db.Column(db.String(250)),
-            "name_account": db.Column(db.String(250)),
-            "last_chat": db.Column(db.String(250)),
-            "last_date": db.Column(db.DateTime, default=datetime.utcnow),
-        }
-
-        DynamicChatModel = type(
-            f"{website_user.capitalize()}ChatModel", (db.Model,), class_attrs
-        )
-
-        # ===== Create table di database admin_chat_room =====
-       # ===== Create table di database admin_chat_room =====
-        try:
-           with current_app.app_context():
-            # Ambil engine dari bind key
-            engine = db.get_engine(bind_key="admin_chat_room")
-            write_log(f"Membuat tabel '{table_name}' di {engine.url} ...")
-
-            # Create table dengan engine
-            DynamicChatModel.__table__.create(bind=engine, checkfirst=True)
-            write_log(f"Tabel '{table_name}' berhasil dibuat!")
-
-        except Exception as e:
-            flash(f"Gagal membuat tabel chat: {str(e)}", "danger")
-            write_log(f"Gagal membuat tabel '{table_name}': {str(e)}")
-            return redirect(url_for(Webpage))
-
-
-        flash("✅ Website & tabel chat berhasil dibuat!", "success")
-        write_log(f"Website '{website_user}' & tabel chat berhasil dibuat")
-        return redirect(url_for(Webpage))
-
-
-@updatewebsite.route(
-    "/websiteupadate/<int:id_web>", methods=["POST"], endpoint="websiteupadate"
-)
-def websiteupadate(id_web):
-    try:
-        form = WebsiteForm()
-        webdb = model_website.query.filter_by(id_website=id_web).first()
-
-        if not webdb:
-            return jsonify({"success": False, "error": "Website tidak ditemukan"}), 404
-
-        if form.validate_on_submit():
-            update_data = {}
-
-            # Cek apakah name_level diganti
-            if form.name_website.data != webdb.name_website:
-                # Pastikan name_level belum dipakai level lain
-                existing = model_website.query.filter_by(
-                    name_website=form.name_website.data
-                ).first()
-                if existing:
-                    return (
-                        jsonify(
-                            {"danger": True, "message": "Name Website sudah digunakan."}
-                        ),
-                        400,
-                    )
-                update_data["name_website"] = form.name_website.data
-
-            # ✅ Jalankan update jika ada perubahan
-            if update_data:
-                result = update_record(model_website, id_web, **update_data)
-                if not result.get("success"):
-                    return (
-                        jsonify(
-                            {
-                                "success": False,
-                                "error": result.get("error", "Update gagal"),
-                            }
-                        ),
-                        400,
-                    )
-
-            return (
-                jsonify({"success": True, "message": "Website berhasil diupdate."}),
-                200,
-            )
-
-        # Kalau form invalid
-        print("❌ FORM ERRORS:", form.errors)
-        return (
-            jsonify({"success": False, "error": f"Form tidak valid: {form.errors}"}),
-            400,
-        )
-
-    except Exception as e:
-        print("❌ Exception di levelupdate:", str(e))
-        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @level_bp.route("/delete/<int:record_id>", methods=["POST"])
@@ -500,11 +359,11 @@ def delete_account(record_id):
 def create_useraccount():
     try:
         # Ambil data dari form (HTML form)
-        name = request.form.get("name")
+        name = request.form.get("nama_lengkap")
         email = request.form.get("email")
         password = request.form.get("password")
         level_user = request.form.get("level_user")
-        website_id = request.form.get("website_id")
+        kode_kampus = request.form.get("kode_kampus")
         flag_active = request.form.get("flag_active")
 
         print("📌 DEBUG FORM DATA:")
@@ -512,7 +371,7 @@ def create_useraccount():
         print("email:", email)
         print("password:", password)
         print("level_user:", level_user)
-        print("website_id:", website_id)
+        print("kode_kampus:", kode_kampus)
         print("flag_active:", flag_active)
 
         # ✅ Cek apakah email sudah ada
@@ -528,11 +387,11 @@ def create_useraccount():
 
         # Data yang mau diinsert
         data = {
-            "name": name,
+            "nama_lengkap": name,
             "email": email,
             "password": hashed_password,
             "level_user": int(level_user) if level_user else None,
-            "website_id": int(website_id) if website_id else None,
+            "kode_kampus": int(kode_kampus) if kode_kampus else None,
             "flag_active": int(flag_active) if flag_active else 1,
             "create_by": datetime.now(),  # ✅ auto isi waktu saat insert
         }
@@ -581,10 +440,10 @@ def userupdate(id_account):
 
             if form.level_user.data:
                 update_data["level_user"] = form.level_user.data
-            if form.name.data:
-                update_data["name"] = form.name.data
-            if form.website_id.data:
-                update_data["website_id"] = form.website_id.data
+            if form.nama_lengkap.data:
+                update_data["nama_lengkap"] = form.nama_lengkap.data
+            if form.kode_kampus.data:
+                update_data["kode_kampus"] = form.kode_kampus.data
             if form.flag_active.data is not None:
                 update_data["flag_active"] = form.flag_active.data
 
@@ -605,7 +464,7 @@ def userupdate(id_account):
                         )
                     )
                     resp.delete_cookie("uniqID")
-                    resp.delete_cookie("LVLUser")
+                    resp.delete_cookie("levelUser")
                     return resp, 200
 
                 return (

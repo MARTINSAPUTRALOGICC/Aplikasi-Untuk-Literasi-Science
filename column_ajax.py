@@ -1,10 +1,10 @@
 columns_account = [
     {"data": "No", "className": "text-center align-middle"},
-    {"data": "name", "className": "text-center align-middle"},
+    {"data": "nama_lengkap", "className": "text-center align-middle"},
     {"data": "email", "className": "text-center align-middle"},
     {"data": "password", "className": "text-center align-middle"},
     {"data": "level_user", "className": "text-center align-middle"},
-    {"data": "website", "className": "text-center align-middle"},
+    {"data": "kode_kampus", "className": "text-center align-middle"},
     {"data": "status", "className": "text-center align-middle"},
     {"data": "create_by", "className": "text-center align-middle"},
     {"data": "last_sign", "className": "text-center align-middle"},
@@ -19,9 +19,10 @@ columns_level = [
 ]
 
 
-columns_website = [
+column_kampus = [
     {"data": "No", "className": "text-center align-middle"},
-    {"data": "name_website", "className": "text-center align-middle"},
+    {"data": "name_kampus", "className": "text-center align-middle"},
+    {"data": "alamat_kampus", "className": "text-center align-middle"},
     {"data": None, "className": "text-center align-middle", "orderable": False},
 ]
 

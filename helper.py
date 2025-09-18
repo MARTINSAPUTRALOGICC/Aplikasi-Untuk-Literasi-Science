@@ -15,14 +15,14 @@ def fetch_level_user_Admin():
     role_accounts = model_level.query.filter(model_level.id_level != 1).all()
     return [(role.name_level, str(role.id_level)) for role in role_accounts]
 
-def fetch_website_super():
-    website_data = model_website.query.all()
-    return [(web.name_website, str(web.id_website)) for web in website_data]
+def fetch_kampus_super():
+    kampus_data = model_kampus.query.all()
+    return [(kampus.name_kampus, str(kampus.id_kampus)) for kampus in kampus_data]
 
 
-def fetch_website_admin(id):
-    website_data = model_website.query.filter_by(id_website=id).all()
-    return [(web.name_website, str(web.id_website)) for web in website_data]
+def fetch_kampus_admin(id):
+    kampus_data = model_kampus.query.filter_by(id_kampus=id).all()
+    return [(kampus.name_kampus, str(kampus.id_kampus)) for kampus in kampus_data]
 
 
 def fetch_active(status: int) -> str:
@@ -41,21 +41,23 @@ def fetch_status_user_options():
     ]
 
 
-def fetch_website_all(leveling: int):
-    query = model_website.query
+def fetch_kampus_all(leveling: int):
+    query = model_kampus.query
     if leveling != 1:
-        query = query.filter(model_website.id_website != 1)
+        query = query.filter(model_kampus.id_kampus != 1)
 
-    websitez = query.all()
+    kampusz = query.all()
 
-    return [(str(role.id_website), role.name_website) for role in websitez]
+    return [(str(role.id_kampus), role.name_kampus) for role in kampusz]
 
 
-def fetch_website(id_website: int) -> str:
-    website = model_website.query.filter(
-        model_website.id_website == id_website, model_website.id_website != 1
+def fetch_kampus(id_kampus: int) -> str:
+    kampus = model_kampus.query.filter(
+        model_kampus.id_kampus == id_kampus, model_kampus.id_kampus != 1
     ).first()
-    return website.name_website if website else "Unknown"
+    return kampus.name_kampus if kampus else "Unknown"
+
+
 
 
 # CREATE

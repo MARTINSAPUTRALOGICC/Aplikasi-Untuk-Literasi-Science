@@ -152,11 +152,11 @@ function loadEditModal(productId) {
             // Mapping fields berdasarkan page
             if (currentPage === "account") {
                 fields = [
-                    { id: 'name', type: 'input', value: data.name || '' },
+                    { id: 'nama_lengkap', type: 'input', value: data.nama_lengkap || '' },
                     { id: 'password', type: 'input', value: data.password || '' },
                     { id: 'level_user', type: 'select', value: data.level_user, options: data.FlagLevel },
-                    { id: 'flag_active', type: 'select', value: data.flag_active, options: data.FlagActive },
-                    { id: 'website_id', type: 'select', value: data.website_id, options: data.FlagWebsite }
+                    { id: 'kode_kampus', type: 'select', value: data.kode_kampus, options: data.FlagKampus },
+                    { id: 'flag_active', type: 'select', value: data.flag_active, options: data.FlagActive }
                 ];
             } else if (currentPage === "leveluser") {
                 fields = [

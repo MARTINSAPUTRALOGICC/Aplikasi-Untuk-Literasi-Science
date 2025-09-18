@@ -35,18 +35,18 @@ class PageForm(FlaskForm):
     url_page = StringField("url_page", validators=[DataRequired()])
 
 class AccountForm(FlaskForm):
-    name = StringField("name", validators=[DataRequired()])
+    nama_lengkap = StringField("nama_lengkap", validators=[DataRequired()])
     email = StringField("email", validators=[DataRequired(), Email()])
     password = PasswordField("password", validators=[DataRequired()])
     level_user = IntegerField("level_user", validators=[DataRequired()])
-    website_id = IntegerField("website_id", validators=[DataRequired()])
+    kode_kampus = IntegerField("kode_kampus", validators=[DataRequired()])
     flag_active = IntegerField("flag_active", validators=[DataRequired()])
 
 
 # di form_field.py
 class AccountUpdate(FlaskForm):
-    name = StringField("name", validators=[DataRequired()])
+    nama_lengkap = StringField("nama_lengkap", validators=[DataRequired()])
     password = PasswordField("password", validators=[Optional()])
     level_user = IntegerField("level_user", validators=[DataRequired()])
-    website_id = IntegerField("website_id", validators=[DataRequired()])
+    kode_kampus = IntegerField("kode_kampus", validators=[DataRequired()])
     flag_active = IntegerField("flag_active", validators=[DataRequired()])
