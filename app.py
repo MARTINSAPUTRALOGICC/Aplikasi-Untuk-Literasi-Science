@@ -24,7 +24,7 @@ from helper import (
     fetch_kampus,
     fetch_status_user_options,
 )
-from column_ajax import columns_account, columns_level
+from column_ajax import columns_account, columns_level, columns_sidebar, column_kampus
 from flask import (
     Flask,
     render_template,
@@ -55,18 +55,25 @@ from constant import (
     dashboard_screen,
     column_useraccount,
     column_role,
+    column_sidebar,
+    ajaxsidebar,
     ajaxaccount,
     ajaxlevel,
     insertaccountcrud,
+    insertsidebarcrud,
     insertlevelcrud,
     deleteaccountcrud,
+    deletesidebarcrud,
     deletelevelcrud,
     updateaccountcrud,
+    updatesidebarcrud,
     updatelevelcrud,
     getajaxaccount,
     getajaxlevel,
+    getajaxsidebar,
     page2,
     page1,
+    page3,
 )
 
 from form_field import (
@@ -74,6 +81,7 @@ from form_field import (
     AccountForm,
     AccountUpdate,
     RoleForm,
+    PageForm,
 
 )
 from flask import Flask, request, jsonify, make_response
@@ -84,7 +92,10 @@ from controler import (
     updateaccount,
     level_bp,
     levelaccount_bp,
-    updatelevel
+    updatelevel,
+    sidebar_bp,
+    sidebaraccount_bp,
+    updatesidebar,
 )
 
 app = Flask(__name__)
@@ -105,6 +116,11 @@ app.secret_key = "AULSKJ"
 app.register_blueprint(account_bp)
 app.register_blueprint(useraccount_bp)
 app.register_blueprint(updateaccount)
+
+
+app.register_blueprint(sidebar_bp)
+app.register_blueprint(sidebaraccount_bp)
+app.register_blueprint(updatesidebar)
 
 
 app.register_blueprint(level_bp)
@@ -609,6 +625,138 @@ def CreateAccount():
         return response
 
 
+@app.route("/Page", methods=["GET", "POST"])
+def Page():
+    uniqid = request.cookies.get("uniqID")
+    ICON = get_icon_url()
+    titlez = title_website
+
+    if uniqid is None:
+        return redirect(url_for("logout"))  # kalau cookie hilang, redirect ke login
+
+    cardtitle = "Data Sidebar User"
+
+    form = PageForm()
+
+    count_id_sidebar = 1
+    pages = model_page.query.all()
+    accountid = model_useraccount.query.filter(model_useraccount.id_account == uniqid).first()
+    # ambil setting page untuk user yg login
+    page_setting = model_page_setting.query.filter_by(
+        id_account=accountid.id_account
+    ).first()
+    page_check = page_setting.page2
+
+    if int(page_check) != 2:
+        return logout()
+    else:
+        crud = model_setting_crud.query.filter_by(
+            id_account=accountid.id_account
+        ).first()
+        create = int(crud.create_setting)  # convert ke int karena db.Enum simpan string
+        update = int(crud.update_setting)  # convert ke int karena db.Enum simpan string
+        delete = int(crud.delete_setting)  # convert ke int karena db.Enum simpan string
+        tabel = int(crud.table_setting)  # convert ke int karena db.Enum simpan string
+
+        sidebar_items = []
+        modified_data = []
+
+        # data user
+        for pagez in pages:
+
+            modified_page = [
+                count_id_sidebar,
+                pagez.name_page,
+                pagez.icon_page,
+                pagez.url_page,
+            ]
+            modified_data.append(modified_page)
+            count_id_sidebar += 1
+
+        # ambil semua page
+        all_pages = model_page.query.all()
+
+        # mapping setting ke page
+        if page_setting:
+            for page in all_pages:
+                flag = getattr(page_setting, f"page{page.id_page}", None)
+                if flag == "2":  # show
+                    sidebar_items.append(
+                        {
+                            "name_page": page.name_page,
+                            "icon_page": page.icon_page,
+                            "url_page": page.url_page,
+                        }
+                    )
+        else:
+            # fallback kalau belum ada setting → tampilkan semua
+            for page in all_pages:
+                sidebar_items.append(
+                    {
+                        "name_page": page.name_page,
+                        "icon_page": page.icon_page,
+                        "url_page": page.url_page,
+                    }
+                )
+
+        # form input
+        form_input = [
+            {"label": "Name", "input_type": "text", "name": "name_page"},
+            {"label": "Icon", "input_type": "text", "name": "icon_page"},
+            {"label": "Url Page", "input_type": "text", "name": "url_page"},
+        ]
+
+        form_edit = [
+            {
+                "label": "Name",
+                "input_type": "text",
+                "name": "name_page",
+                "value": pagez.name_page,
+            },
+            {
+                "label": "Icon",
+                "input_type": "text",
+                "name": "icon_page",
+                "value": pagez.icon_page,
+            },
+            {
+                "label": "Url Page",
+                "input_type": "text",
+                "name": "url_page",
+                "value": pagez.url_page,
+            },
+        ]
+
+        html_content = render_template(
+            dashboard_screen,
+            title=titlez,
+            columns=columns_sidebar,  # kirim sebagai JSON
+            ICONIMAGES=ICON,
+            sidebar_items=sidebar_items,
+            column_names=column_sidebar,
+            data_list=form_input,
+            data_list1=form_edit,
+            form=form,
+            form1=form,
+            insert_ui=create,
+            tabel_ui=tabel,
+            update_ui=update,
+            delete_ui=delete,
+            users=modified_data,
+            cardtitle=cardtitle,
+            page=page3,
+            ajax_post=ajaxsidebar,
+            get_ajax=getajaxsidebar,
+            insertaccount=insertsidebarcrud,
+            accountedelete=deletesidebarcrud,
+            updateaccount=updatesidebarcrud,
+        )
+
+        response = make_response(html_content)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+
 # AJAX ROUTE {Fungsi penarikan Data}
 
 @app.route("/ajaxLevel", methods=["POST", "GET"])
@@ -758,7 +906,87 @@ def ajaxAccount():
         return jsonify({"error": str(e)})
 
 
+@app.route("/ajaxSidebar", methods=["POST", "GET"])
+def ajaxSidebar():
+    try:
+        if request.method == "POST":
+            draw = int(request.form.get("draw", 1))
+            row = int(request.form.get("start", 0))
+            rowperpage = int(request.form.get("length", 10))
+            searchValue = request.form.get("search[value]", "")
+
+            totalRecords = model_page.query.count()
+
+            if searchValue:
+                query = model_page.query.filter(
+                    model_page.name_page.like(f"%{searchValue}%"),
+                )
+                totalRecordwithFilter = query.count()
+                produklist = (
+                    query.order_by(model_page.id_page.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+            else:
+                totalRecordwithFilter = totalRecords
+                produklist = (
+                    model_page.query.order_by(model_page.id_page.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+
+            data = []
+            count_id_sidebar = row + 1
+
+            for produk in produklist:
+
+                data.append(
+                    {
+                        "No": count_id_sidebar,
+                        "name_page": (produk.name_page if produk.name_page else "-"),
+                        "icon_page": (produk.icon_page if produk.icon_page else "-"),
+                        "url_page": (produk.url_page if produk.url_page else "-"),
+                        "id": produk.id_page,
+                    }
+                )
+                count_id_sidebar += 1
+
+            response = {
+                "draw": draw,
+                "iTotalRecords": totalRecords,
+                "iTotalDisplayRecords": totalRecordwithFilter,
+                "aaData": data,
+            }
+            return jsonify(response)
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)})
+
+
 # GET AJAX ROUTE {Fungsi untuk Edit Data}
+
+
+@app.route("/get_sidebar_data", methods=["GET"])
+def get_sidebar_data():
+    page_id = request.args.get("id", type=int)
+    if not page_id:
+        return jsonify({"error": "Account ID is required"}), 400
+
+    pagedb = db.session.get(model_page, page_id)
+    if pagedb is None:
+        return jsonify({"error": "Account not found"}), 404
+
+    # ambil level dari cookies login user, bukan dari account target
+    role_data = {
+        "name_page": pagedb.name_page,
+        "icon_page": pagedb.icon_page,
+        "url_page": pagedb.url_page,
+    }
+
+    return jsonify(role_data)
 
 
 @app.route("/get_level_data", methods=["GET"])
