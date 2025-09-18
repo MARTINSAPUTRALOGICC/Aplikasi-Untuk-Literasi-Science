@@ -49,7 +49,10 @@ class model_page_setting(db.Model):
     page5 = db.Column(db.Enum("1", "2", name="page5_enum"), nullable=False)
     page6 = db.Column(db.Enum("1", "2", name="page6_enum"), nullable=False)
     page7 = db.Column(db.Enum("1", "2", name="page7_enum"), nullable=False)
-
+    page8 = db.Column(db.Enum("1", "2", name="page8_enum"), nullable=False)
+    page9 = db.Column(db.Enum("1", "2", name="page9_enum"), nullable=False)
+    page10 = db.Column(db.Enum("1", "2", name="page10_enum"), nullable=False)
+    page11 = db.Column(db.Enum("1", "2", name="page11_enum"), nullable=False)
 
 class model_setting_crud(db.Model):
     __bind_key__ = "auls"  # <- wajib kalau pakai bind
@@ -65,7 +68,7 @@ class model_setting_crud(db.Model):
 class model_kampus(db.Model):
     __bind_key__ = "auls"  # <- wajib kalau pakai bind
     __tablename__ = "kampus"
-    id_website = db.Column(db.Integer, primary_key=True)
+    id_kampus = db.Column(db.Integer, primary_key=True)
     name_kampus = db.Column(db.String(500), nullable=True)
     alamat_kampus = db.Column(db.String(500), nullable=True)
 
@@ -131,5 +134,3 @@ class model_hasilsiswa(db.Model):
     id_mk = db.Column(db.Integer, nullable=False)
     nilai = db.Column(db.String(250), nullable=True)
     grade = db.Column(db.String(250), nullable=True)
-
-

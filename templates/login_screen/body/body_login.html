@@ -26,67 +26,25 @@
       </button>
     </form>
 <br>
-    <div class="divider"><center><span>OR</span></center></div>
-    <!-- Tombol Login Google -->
-    <div class="google-btn-container">
-      <button onclick="loginGoogle()" class="google-btn">
-        <img src="https://www.google.com/favicon.ico" alt="Google Logo">
-        <span>Sign in with Google</span>
-      </button>
-    </div>
+ 
 
-    <div class="version-info">{{ versi }}</div>
-  </div>
-</div>
-
-<script type="module">
-async function initFirebase() {
-  try {
-    const res = await fetch("/getConfig");
-    const firebaseConfig = await res.json();
-    firebase.initializeApp(firebaseConfig);
-
-    const auth = firebase.auth();
-
-    window.loginGoogle = async function() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      try {
-        const result = await auth.signInWithPopup(provider);
-        const token = await result.user.getIdToken(true);
-
-        const verifyRes = await fetch("/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-          credentials: "include"
-        });
-
-        const data = await verifyRes.json();
-
+<script>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
         Swal.fire({
-          icon: data.status === "success" ? "success" : data.status === "inactive" ? "warning" : "error",
-          title: data.status === "success" ? "Login Berhasil!" :
-                 data.status === "inactive" ? "Akun Belum Aktif" : "Login Gagal",
-          text: data.message || "Terjadi kesalahan.",
-          showConfirmButton: true,
-          allowOutsideClick: false
-        }).then(() => {
-          if (data.status === "success" && data.redirect) {
-            window.location.href = data.redirect;
-          }
+          icon: "{{ category }}",
+          title: "{{ message }}",
+          timer: 3000,
+          showConfirmButton: false
         });
-
-      } catch (err) {
-        console.error("Login error:", err);
-        Swal.fire({ icon: "error", title: "Terjadi Kesalahan", text: "Gagal login, silakan coba lagi!" });
-      }
-    }
-  } catch (err) {
-    console.error("Firebase init error:", err);
-    Swal.fire({ icon: "error", title: "Firebase Error", text: "Gagal inisialisasi Firebase!" });
-  }
-}
-initFirebase();
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 </script>
+
+
+
+
 </body>
 </html>

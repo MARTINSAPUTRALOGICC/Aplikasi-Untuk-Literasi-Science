@@ -11,7 +11,7 @@ column_useraccount = [
     "Email",
     "Password",
     "Level User",
-    "Website",
+    "Kampus",
     "Status",
     "Create By",
     "Last Login",
@@ -25,13 +25,13 @@ column_role = ["Number","Name Level","Action"]
 column_pagese =["Number","User Account","Page1","Page2","Page3","Page4","Page5","Page6","Page7","Action"]
 
 def get_icon_url():
-    return url_for("static", filename="assets/spc.png")
+    return url_for("static", filename="assets/book.png")
 
 
 base_url = "https://"
 
 
-title_website = "SPC (System Panel Chatting)"
+title_website = "Aolikasi Untuk Literasi Science"
 
 
 # ROUTE AJAX
