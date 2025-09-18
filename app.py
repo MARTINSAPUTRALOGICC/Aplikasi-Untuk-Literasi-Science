@@ -24,7 +24,7 @@ from helper import (
     fetch_kampus,
     fetch_status_user_options,
 )
-from column_ajax import columns_account
+from column_ajax import columns_account, columns_level
 from flask import (
     Flask,
     render_template,
@@ -54,11 +54,18 @@ from constant import (
     
     dashboard_screen,
     column_useraccount,
+    column_role,
     ajaxaccount,
+    ajaxlevel,
     insertaccountcrud,
+    insertlevelcrud,
     deleteaccountcrud,
+    deletelevelcrud,
     updateaccountcrud,
+    updatelevelcrud,
     getajaxaccount,
+    getajaxlevel,
+    page2,
     page1,
 )
 
@@ -66,6 +73,7 @@ from form_field import (
     LoginForm,
     AccountForm,
     AccountUpdate,
+    RoleForm,
 
 )
 from flask import Flask, request, jsonify, make_response
@@ -74,6 +82,9 @@ from controler import (
     account_bp,
     useraccount_bp,
     updateaccount,
+    level_bp,
+    levelaccount_bp,
+    updatelevel
 )
 
 app = Flask(__name__)
@@ -95,6 +106,10 @@ app.register_blueprint(account_bp)
 app.register_blueprint(useraccount_bp)
 app.register_blueprint(updateaccount)
 
+
+app.register_blueprint(level_bp)
+app.register_blueprint(levelaccount_bp)
+app.register_blueprint(updatelevel)
 
 app.secret_key = os.urandom(24)  # untuk session / keamanan
 
@@ -285,6 +300,122 @@ def dashboard():
         return jsonify({"msg": "Role tidak dikenal", "cookies": request.cookies})
 
 
+@app.route("/LevelUser", methods=["GET", "POST"])
+def LevelUser():
+    uniqid = request.cookies.get("uniqID")
+    ICON = get_icon_url()
+    titlez = title_website
+
+    if uniqid is None:
+        return redirect(url_for("logout"))  # kalau cookie hilang, redirect ke login
+
+    cardtitle = "Data Level User"
+
+    form = RoleForm()
+
+    count_id_sidebar = 1
+    levels = model_level.query.all()
+    accountid = model_useraccount.query.filter(model_useraccount.id_account == uniqid).first()
+    # ambil setting page untuk user yg login
+    page_setting = model_page_setting.query.filter_by(
+        id_account=accountid.id_account
+    ).first()
+    page_check = page_setting.page2
+
+    if int(page_check) != 2:
+        return logout()
+    else:
+        crud = model_setting_crud.query.filter_by(
+            id_account=accountid.id_account
+        ).first()
+        create = int(crud.create_setting)  # convert ke int karena db.Enum simpan string
+        update = int(crud.update_setting)  # convert ke int karena db.Enum simpan string
+        delete = int(crud.delete_setting)  # convert ke int karena db.Enum simpan string
+        tabel = int(crud.table_setting)  # convert ke int karena db.Enum simpan string
+
+        sidebar_items = []
+        modified_data = []
+
+        # data user
+        for level in levels:
+
+            modified_level = [
+                count_id_sidebar,
+                level.name_level,
+            ]
+            modified_data.append(modified_level)
+            count_id_sidebar += 1
+
+        # ambil semua page
+        all_pages = model_page.query.all()
+
+        # mapping setting ke page
+        if page_setting:
+            for page in all_pages:
+                flag = getattr(page_setting, f"page{page.id_page}", None)
+                if flag == "2":  # show
+                    sidebar_items.append(
+                        {
+                            "name_page": page.name_page,
+                            "icon_page": page.icon_page,
+                            "url_page": page.url_page,
+                        }
+                    )
+        else:
+            # fallback kalau belum ada setting → tampilkan semua
+            for page in all_pages:
+                sidebar_items.append(
+                    {
+                        "name_page": page.name_page,
+                        "icon_page": page.icon_page,
+                        "url_page": page.url_page,
+                    }
+                )
+
+        # form input
+        form_input = [
+            {"label": "Name", "input_type": "text", "name": "name_level"},
+        ]
+
+        form_edit = [
+            {
+                "label": "Name",
+                "input_type": "text",
+                "name": "name_level",
+                "value": level.name_level,
+            },
+        ]
+
+        html_content = render_template(
+            dashboard_screen,
+            title=titlez,
+            columns=columns_level,  # kirim sebagai JSON
+            ICONIMAGES=ICON,
+            sidebar_items=sidebar_items,
+            column_names=column_role,
+            data_list=form_input,
+            data_list1=form_edit,
+            form=form,
+            form1=form,
+            insert_ui=create,
+            tabel_ui=tabel,
+            update_ui=update,
+            delete_ui=delete,
+            users=modified_data,
+            cardtitle=cardtitle,
+            page=page2,
+            ajax_post=ajaxlevel,
+            get_ajax=getajaxlevel,
+            insertaccount=insertlevelcrud,
+            accountedelete=deletelevelcrud,
+            updateaccount=updatelevelcrud,
+        )
+
+        response = make_response(html_content)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+
 @app.route("/CreateAccount", methods=["GET", "POST"])
 def CreateAccount():
     uniqid = request.cookies.get("uniqID")
@@ -307,7 +438,7 @@ def CreateAccount():
         id_kampus = model_useraccount.query.filter_by(id_account=uniqid).first()
         kampusID = id_kampus.kode_kampus
         LEVEL_USER_OPTIONS = fetch_level_user_Admin()
-        KAMPUS_USER_OTIONS = fetch_kampus_admin()
+        KAMPUS_USER_OTIONS = fetch_kampus_admin(kampusID)
         users = model_useraccount.query.filter_by(kode_kampus=kampusID).all()
 
     STATUS_OPTIONS = [("No Active", 1), ("Active", 2)]
@@ -480,6 +611,63 @@ def CreateAccount():
 
 # AJAX ROUTE {Fungsi penarikan Data}
 
+@app.route("/ajaxLevel", methods=["POST", "GET"])
+def ajaxLevel():
+    try:
+        if request.method == "POST":
+            draw = int(request.form.get("draw", 1))
+            row = int(request.form.get("start", 0))
+            rowperpage = int(request.form.get("length", 10))
+            searchValue = request.form.get("search[value]", "")
+
+            totalRecords = model_level.query.count()
+
+            if searchValue:
+                query = model_level.query.filter(
+                    model_level.name_level.like(f"%{searchValue}%"),
+                )
+                totalRecordwithFilter = query.count()
+                produklist = (
+                    query.order_by(model_level.id_level.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+            else:
+                totalRecordwithFilter = totalRecords
+                produklist = (
+                    model_level.query.order_by(model_level.id_level.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+
+            data = []
+            count_id_sidebar = row + 1
+
+            for produk in produklist:
+
+                data.append(
+                    {
+                        "No": count_id_sidebar,
+                        "name_level": produk.name_level if produk.name_level else "-",
+                        "id": produk.id_level,
+                    }
+                )
+                count_id_sidebar += 1
+
+            response = {
+                "draw": draw,
+                "iTotalRecords": totalRecords,
+                "iTotalDisplayRecords": totalRecordwithFilter,
+                "aaData": data,
+            }
+            return jsonify(response)
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)})
+
 
 @app.route("/ajaxAccount", methods=["POST", "GET"])
 def ajaxAccount():
@@ -571,6 +759,24 @@ def ajaxAccount():
 
 
 # GET AJAX ROUTE {Fungsi untuk Edit Data}
+
+
+@app.route("/get_level_data", methods=["GET"])
+def get_level_data():
+    level_id = request.args.get("id", type=int)
+    if not level_id:
+        return jsonify({"error": "Account ID is required"}), 400
+
+    leveldb = db.session.get(model_level, level_id)
+    if leveldb is None:
+        return jsonify({"error": "Account not found"}), 404
+
+    # ambil level dari cookies login user, bukan dari account target
+    role_data = {
+        "name_level": leveldb.name_level,
+    }
+
+    return jsonify(role_data)
 
 @app.route("/get_account_data", methods=["GET"])
 def get_account_data():

@@ -31,7 +31,7 @@ def get_icon_url():
 base_url = "https://"
 
 
-title_website = "Aolikasi Untuk Literasi Science"
+title_website = "Aplikasi Untuk Literasi Science"
 
 
 # ROUTE AJAX
