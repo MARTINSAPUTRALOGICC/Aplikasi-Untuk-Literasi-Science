@@ -163,10 +163,11 @@ function loadEditModal(productId) {
                     { id: 'name_level', type: 'input', value: data.name_level || '' }
                  
                 ];
-            } else if (currentPage === "website") {
+            } else if (currentPage === "kampus") {
                fields = [
-                    { id: 'name_website', type: 'input', value: data.name_website || '' }
-                 
+                    { id: 'name_kampus', type: 'input', value: data.name_kampus || '' },
+                    { id: 'alamat_kampus', type: 'input', value: data.alamat_kampus || '' }
+
                 ];
             } else if (currentPage === "sidebar") {
                fields = [

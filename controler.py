@@ -6,6 +6,7 @@ from helper import delete_record, create_record,update_record
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 import re
+import traceback
 from flask import (
     Blueprint,
     jsonify,
@@ -20,10 +21,10 @@ from flask import (
     make_response,
 )
 
-from model import db, model_useraccount, model_level,model_page,model_page_setting,model_setting_crud
+from model import db, model_useraccount, model_level,model_page,model_page_setting,model_setting_crud,model_kampus
 
-from form_field import RoleForm, AccountUpdate, WebsiteForm, PageForm
-from constant import Dashboard, Leveluser, Webpage, Sidebarpage
+from form_field import RoleForm, AccountUpdate, KampusForm, PageForm
+from constant import Dashboard, Leveluser, Kampus, Sidebarpage
 
 account_bp = Blueprint("account_bp", __name__, url_prefix="/account")
 useraccount_bp = Blueprint("useraccount", __name__)
@@ -34,9 +35,9 @@ level_bp = Blueprint("level_bp", __name__, url_prefix="/level")
 levelaccount_bp = Blueprint("levelaccount", __name__)
 updatelevel = Blueprint("levelupdate", __name__)
 
-website_bp = Blueprint("website_bp", __name__, url_prefix="/website")
-websiteaccount_bp = Blueprint("websiteaccount", __name__)
-updatewebsite = Blueprint("websiteupadate", __name__)
+kampus_bp = Blueprint("kampus_bp", __name__, url_prefix="/kampus")
+kampusaccount_bp = Blueprint("kampusaccount_bp", __name__)
+updatekampus = Blueprint("updatekampus", __name__)
 
 sidebar_bp = Blueprint("sidebar_bp", __name__, url_prefix="/sidebar")
 sidebaraccount_bp = Blueprint("sidebaraccount", __name__)
@@ -118,7 +119,7 @@ def update_page_setting():
 
 
 @sidebar_bp.route("/delete/<int:record_id>", methods=["POST"])
-def delete_website(record_id):
+def delete_sidebar(record_id):
     result = delete_record(model_page, record_id)
     if result.get("success"):
         return jsonify({"status": "success", "message": result.get("message")})
@@ -232,11 +233,6 @@ def sidebarupadate(id_page):
         print("❌ Exception di levelupdate:", str(e))
         return jsonify({"success": False, "error": str(e)}), 500
 
-
-import os
-from datetime import datetime
-
-
 @level_bp.route("/delete/<int:record_id>", methods=["POST"])
 def delete_level(record_id):
     result = delete_record(model_level, record_id)
@@ -244,7 +240,6 @@ def delete_level(record_id):
         return jsonify({"status": "success", "message": result.get("message")})
     else:
         return jsonify({"status": "error", "message": result.get("error")}), 400
-
 
 @levelaccount_bp.route("/levelaccount/create", methods=["POST"])
 def levelaccount():
@@ -283,7 +278,6 @@ def levelaccount():
         traceback.print_exc()  # biar error detail muncul di terminal
         flash(f"Error: {str(e)}", "danger")
         return redirect(url_for(Leveluser))
-
 
 @updatelevel.route(
     "/levelupdate/<int:id_level>", methods=["POST"], endpoint="levelupdate"
@@ -410,7 +404,6 @@ def create_useraccount():
             return redirect(url_for(Dashboard))
 
     except Exception as e:
-        import traceback
 
         traceback.print_exc()  # biar error detail muncul di terminal
         flash(f"Error: {str(e)}", "danger")
@@ -484,3 +477,59 @@ def userupdate(id_account):
     except Exception as e:
         print("❌ Exception di userupdate:", str(e))
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@kampus_bp.route("/delete/<int:record_id>", methods=["POST"])
+def delete_website(record_id):
+    try:
+        kampusdb = model_kampus.query.filter_by(id_website=record_id).first()
+        if not kampusdb:
+            return (
+                jsonify({"status": "error", "message": "Website tidak ditemukan"}),
+                404,
+            )
+
+        result = delete_record(model_kampus, record_id)
+        if result.get("success"):
+            return jsonify(
+                {
+                    "status": "success",
+                    "message": f"Website '{kampusdb.name_kampus}' berhasil dihapus",
+                }
+            )
+        else:
+            return jsonify({"status": "error", "message": result.get("error")}), 400
+
+    except Exception as e:
+        print("❌ ERROR delete_website:", str(e))
+        print(traceback.format_exc())
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@kampusaccount_bp.route("/kampusaccount", methods=["GET", "POST"])
+def kampusaccount():
+    if request.method == "POST":
+        kampus_user = request.form.get("name_kampus", "").strip()
+        alamat_kampus = request.form.get("alamat_kampus", "").strip()
+
+        if not kampus_user:
+            flash("❌ Name Kampus tidak boleh kosong!", "warning")
+            return redirect(url_for(Kampus))
+
+        # ===== Cek master =====
+        existing = model_kampus.query.filter_by(name_kampus=kampus_user).first()
+        if existing:
+            flash("❌ Kampus sudah ada!", "warning")
+            return redirect(url_for(Kampus))
+
+        # ===== Simpan master =====
+        result = create_record(
+            model_kampus, name_kampus=kampus_user, alamat_kampus=alamat_kampus
+        )
+        if not result["success"]:
+            flash(f"Gagal: {result['error']}", "danger")
+            return redirect(url_for(Kampus))
+
+        return redirect(url_for(Kampus))
+
+

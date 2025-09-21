@@ -74,7 +74,7 @@ db1 = "auls"
 
 Dashboard = "dashboard"
 Leveluser = "LevelUser"
-Webpage = "Website"
+Kampus = "Kampus"
 Sidebarpage = "Page"
 
 # ROUTE GET COLUMN

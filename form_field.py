@@ -25,8 +25,9 @@ class RoleForm(FlaskForm):
     name_level = StringField("name_level", validators=[DataRequired()])
 
 
-class WebsiteForm(FlaskForm):
-    name_website = StringField("name_website", validators=[DataRequired()])
+class KampusForm(FlaskForm):
+    name_kampus = StringField("name_kampus", validators=[DataRequired()])
+    alamat_kampus = StringField("alamat_kampus", validators=[DataRequired()])
 
 
 class PageForm(FlaskForm):

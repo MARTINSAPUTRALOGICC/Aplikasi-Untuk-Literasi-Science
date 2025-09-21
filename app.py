@@ -759,6 +759,70 @@ def Page():
 
 # AJAX ROUTE {Fungsi penarikan Data}
 
+
+@app.route("/ajaxKampus", methods=["POST", "GET"])
+def ajaxKampus():
+    try:
+        if request.method == "POST":
+            draw = int(request.form.get("draw", 1))
+            row = int(request.form.get("start", 0))
+            rowperpage = int(request.form.get("length", 10))
+            searchValue = request.form.get("search[value]", "")
+
+            totalRecords = model_kampus.query.count()
+
+            if searchValue:
+                query = model_kampus.query.filter(
+                    model_kampus.name_kampus.like(f"%{searchValue}%"),
+                )
+                totalRecordwithFilter = query.count()
+                produklist = (
+                    query.order_by(model_kampus.id_kampus.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+            else:
+                totalRecordwithFilter = totalRecords
+                produklist = (
+                    model_kampus.query.order_by(model_kampus.id_kampus.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+
+            data = []
+            count_id_sidebar = row + 1
+
+            for produk in produklist:
+
+                data.append(
+                    {
+                        "No": count_id_sidebar,
+                        "name_kampus": (
+                            produk.name_kampus if produk.name_kampus else "-"
+                        ),
+                        "alamat_kampus": (
+                            produk.alamat_kampus if produk.alamat_kampus else "-"
+                        ),
+                        "id": produk.id_kampus,
+                    }
+                )
+                count_id_sidebar += 1
+
+            response = {
+                "draw": draw,
+                "iTotalRecords": totalRecords,
+                "iTotalDisplayRecords": totalRecordwithFilter,
+                "aaData": data,
+            }
+            return jsonify(response)
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)})
+
+
 @app.route("/ajaxLevel", methods=["POST", "GET"])
 def ajaxLevel():
     try:
@@ -967,6 +1031,27 @@ def ajaxSidebar():
 
 
 # GET AJAX ROUTE {Fungsi untuk Edit Data}
+
+
+@app.route("/get_kampus_data", methods=["GET"])
+def get_kampus_data():
+    kampus_id = request.args.get("id", type=int)
+    if not kampus_id:
+        return jsonify({"error": "Account ID is required"}), 400
+
+    kampusdb = db.session.get(model_kampus, kampus_id)
+    if kampusdb is None:
+        return jsonify({"error": "Account not found"}), 404
+
+    # ambil level dari cookies login user, bukan dari account target
+    role_data = {
+        "name_kampus": kampusdb.name_kampus,
+        "alamat_kampus": kampusdb.alamat_kampus,
+
+        
+    }
+
+    return jsonify(role_data)
 
 
 @app.route("/get_sidebar_data", methods=["GET"])
