@@ -24,7 +24,7 @@ from helper import (
     fetch_kampus,
     fetch_status_user_options,
 )
-from column_ajax import columns_account, columns_level, columns_sidebar, column_kampus
+from column_ajax import columns_account, columns_level, columns_sidebar, columns_kampus
 from flask import (
     Flask,
     render_template,
@@ -51,29 +51,36 @@ from constant import (
     user_server,
     user_server,
     db1,
-    
     dashboard_screen,
     column_useraccount,
     column_role,
     column_sidebar,
+    column_kampus,
     ajaxsidebar,
     ajaxaccount,
     ajaxlevel,
+    ajaxkampus,
     insertaccountcrud,
     insertsidebarcrud,
     insertlevelcrud,
+    insertkampuscrud,
+    deletekampuscrud,
     deleteaccountcrud,
     deletesidebarcrud,
     deletelevelcrud,
+    updatekampuscrud,
     updateaccountcrud,
     updatesidebarcrud,
     updatelevelcrud,
     getajaxaccount,
     getajaxlevel,
+    getajaxkampus,
     getajaxsidebar,
     page2,
     page1,
     page3,
+    page6,
+    
 )
 
 from form_field import (
@@ -82,6 +89,7 @@ from form_field import (
     AccountUpdate,
     RoleForm,
     PageForm,
+    KampusForm,
 
 )
 from flask import Flask, request, jsonify, make_response
@@ -96,6 +104,9 @@ from controler import (
     sidebar_bp,
     sidebaraccount_bp,
     updatesidebar,
+    kampus_bp,
+    kampusaccount_bp,
+    updatekampus,
 )
 
 app = Flask(__name__)
@@ -113,6 +124,11 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = "AULSKJ"
 
 # ROUTE CONTROLER
+
+app.register_blueprint(kampus_bp)
+app.register_blueprint(kampusaccount_bp)
+app.register_blueprint(updatekampus)
+
 app.register_blueprint(account_bp)
 app.register_blueprint(useraccount_bp)
 app.register_blueprint(updateaccount)
@@ -750,6 +766,132 @@ def Page():
             insertaccount=insertsidebarcrud,
             accountedelete=deletesidebarcrud,
             updateaccount=updatesidebarcrud,
+        )
+
+        response = make_response(html_content)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+
+@app.route("/Kampus", methods=["GET", "POST"])
+def Kampus():
+    
+    uniqid = request.cookies.get("uniqID")
+    ICON = get_icon_url()
+    titlez = title_website
+
+    if uniqid is None:
+        return redirect(url_for("logout"))  # kalau cookie hilang, redirect ke login
+
+    cardtitle = "Data Sidebar User"
+
+    form = KampusForm()
+
+    count_id_sidebar = 1
+    kampusz = model_kampus.query.all()
+    accountid = model_useraccount.query.filter(model_useraccount.id_account == uniqid).first()
+    # ambil setting page untuk user yg login
+    page_setting = model_page_setting.query.filter_by(
+        id_account=accountid.id_account
+    ).first()
+    page_check = page_setting.page6
+
+    if int(page_check) != 2:
+        return logout()
+    else:
+        crud = model_setting_crud.query.filter_by(
+            id_account=accountid.id_account
+        ).first()
+        create = int(crud.create_setting)  # convert ke int karena db.Enum simpan string
+        update = int(crud.update_setting)  # convert ke int karena db.Enum simpan string
+        delete = int(crud.delete_setting)  # convert ke int karena db.Enum simpan string
+        tabel = int(crud.table_setting)  # convert ke int karena db.Enum simpan string
+
+        sidebar_items = []
+        modified_data = []
+
+        # data user
+        for kampusx in kampusz:
+
+            modified_page = [
+                count_id_sidebar,
+                kampusx.name_kampus,
+                kampusx.alamat_kampus,
+                kampusx.id_kampus,
+            ]
+            modified_data.append(modified_page)
+            count_id_sidebar += 1
+
+        # ambil semua page
+        all_pages = model_page.query.all()
+
+        # mapping setting ke page
+        if page_setting:
+            for page in all_pages:
+                flag = getattr(page_setting, f"page{page.id_page}", None)
+                if flag == "2":  # show
+                    sidebar_items.append(
+                        {
+                            "name_page": page.name_page,
+                            "icon_page": page.icon_page,
+                            "url_page": page.url_page,
+                        }
+                    )
+        else:
+            # fallback kalau belum ada setting → tampilkan semua
+            for page in all_pages:
+                sidebar_items.append(
+                    {
+                        "name_page": page.name_page,
+                        "icon_page": page.icon_page,
+                        "url_page": page.url_page,
+                    }
+                )
+
+        # form input
+        form_input = [
+            {"label": "Name Kampus", "input_type": "text", "name": "name_kampus"},
+            {"label": "Alamat Kampus", "input_type": "text", "name": "alamat_kampus"},
+        ]
+
+        form_edit = [
+            {
+                "label": "Name Kampus",
+                "input_type": "text",
+                "name": "name_kampus",
+                "value": kampusx.name_kampus,
+            },
+            {
+                "label": "Alamat Kampus",
+                "input_type": "text",
+                "name": "alamat_kampus",
+                "value": kampusx.alamat_kampus,
+            },
+        ]
+
+        html_content = render_template(
+            dashboard_screen,
+            title=titlez,
+            columns=columns_kampus,  # kirim sebagai JSON
+            ICONIMAGES=ICON,
+            sidebar_items=sidebar_items,
+            column_names=column_kampus,
+            data_list=form_input,
+            data_list1=form_edit,
+            form=form,
+            form1=form,
+            insert_ui=create,
+            tabel_ui=tabel,
+            update_ui=update,
+            delete_ui=delete,
+            users=modified_data,
+            cardtitle=cardtitle,
+            page=page6,
+            ajax_post=ajaxkampus,
+            get_ajax=getajaxkampus,
+            insertaccount=insertkampuscrud,
+            accountedelete=deletekampuscrud,
+            updateaccount=updatekampuscrud,
         )
 
         response = make_response(html_content)

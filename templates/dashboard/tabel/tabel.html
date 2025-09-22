@@ -206,13 +206,15 @@ function loadEditModal(productId) {
             else if (currentPage === "sidebar") {
                 $('#updateForm').attr('action', `{{updateaccount}}`);
             }
+            else if (currentPage === "kampus") {
+                $('#updateForm').attr('action', `{{updateaccount}}`);
+            }
 
             // Tampilkan modal
             $('#modaledit').modal('show');
         }
     });
 }
-
 
 
 $('#updateForm').submit(function(event) { 
@@ -225,12 +227,12 @@ $('#updateForm').submit(function(event) {
         data: formData, 
         processData: false,  
         contentType: false,  
-        dataType: 'json',      // <-- Pastikan jQuery parse JSON
+        dataType: 'json',
         success: function(response) { 
             if (response.success) { 
                 Swal.fire({ 
                     title: 'Berhasil!', 
-                    text: response.message,  // <-- ambil dari server
+                    text: response.message || "Update berhasil!", 
                     icon: 'success',
                     confirmButtonColor: '#3085d6',
                     confirmButtonText: 'OK'
@@ -241,7 +243,7 @@ $('#updateForm').submit(function(event) {
             } else { 
                 Swal.fire({ 
                     title: 'Gagal!', 
-                    text: response.message || response.error, 
+                    text: response.message || response.error || "Update gagal tanpa pesan error.", 
                     icon: 'error',
                     confirmButtonColor: '#d33',
                     confirmButtonText: 'OK'
@@ -249,10 +251,24 @@ $('#updateForm').submit(function(event) {
             } 
         }, 
         error: function(xhr) {
-            let errorMessage = "Terjadi kesalahan!";
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
+            console.error("❌ AJAX Error:", xhr);  // <-- Debug detail di console
+
+            let errorMessage = "Terjadi kesalahan pada server!";
+            
+            // Coba ambil response JSON
+            if (xhr.responseJSON) {
+                if (xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                } else {
+                    errorMessage = JSON.stringify(xhr.responseJSON); // dump semua JSON
+                }
+            } else if (xhr.responseText) {
+                // Kalau server balikin plain text (bukan JSON)
+                errorMessage = xhr.responseText;
             }
+
             Swal.fire({
                 title: "Informasi!!!",
                 text: errorMessage,
@@ -263,6 +279,7 @@ $('#updateForm').submit(function(event) {
         }
     });
 });
+
 
 
 

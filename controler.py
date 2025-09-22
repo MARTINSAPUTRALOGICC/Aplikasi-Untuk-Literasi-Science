@@ -36,8 +36,8 @@ levelaccount_bp = Blueprint("levelaccount", __name__)
 updatelevel = Blueprint("levelupdate", __name__)
 
 kampus_bp = Blueprint("kampus_bp", __name__, url_prefix="/kampus")
-kampusaccount_bp = Blueprint("kampusaccount_bp", __name__)
-updatekampus = Blueprint("updatekampus", __name__)
+kampusaccount_bp = Blueprint("kampusaccount",  __name__ )
+updatekampus = Blueprint("kampusupdate", __name__)
 
 sidebar_bp = Blueprint("sidebar_bp", __name__, url_prefix="/sidebar")
 sidebaraccount_bp = Blueprint("sidebaraccount", __name__)
@@ -480,12 +480,12 @@ def userupdate(id_account):
 
 
 @kampus_bp.route("/delete/<int:record_id>", methods=["POST"])
-def delete_website(record_id):
+def delete_kampus(record_id):
     try:
-        kampusdb = model_kampus.query.filter_by(id_website=record_id).first()
+        kampusdb = model_kampus.query.filter_by(id_kampus=record_id).first()
         if not kampusdb:
             return (
-                jsonify({"status": "error", "message": "Website tidak ditemukan"}),
+                jsonify({"status": "error", "message": "Kampus tidak ditemukan"}),
                 404,
             )
 
@@ -494,20 +494,20 @@ def delete_website(record_id):
             return jsonify(
                 {
                     "status": "success",
-                    "message": f"Website '{kampusdb.name_kampus}' berhasil dihapus",
+                    "message": f"Data '{kampusdb.name_kampus}' berhasil dihapus",
                 }
             )
         else:
             return jsonify({"status": "error", "message": result.get("error")}), 400
 
     except Exception as e:
-        print("❌ ERROR delete_website:", str(e))
+        print("❌ ERROR delete_kampus:", str(e))
         print(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-@kampusaccount_bp.route("/kampusaccount", methods=["GET", "POST"])
-def kampusaccount():
+@kampusaccount_bp.route("/kampusaccount/create", methods=["GET", "POST"])
+def createkampus():
     if request.method == "POST":
         kampus_user = request.form.get("name_kampus", "").strip()
         alamat_kampus = request.form.get("alamat_kampus", "").strip()
@@ -533,3 +533,43 @@ def kampusaccount():
         return redirect(url_for(Kampus))
 
 
+@updatekampus.route(
+    "/kampusupdate/<int:id_kampus>", methods=["POST"], endpoint="kampusupdate"
+)
+def kampusupdate(id_kampus):
+    try:
+        form = KampusForm()
+        kampusdb = model_kampus.query.filter_by(id_kampus=id_kampus).first()
+
+        if not kampusdb:
+            return jsonify({"success": False, "error": "Kampus tidak ditemukan"}), 404
+
+        if form.validate_on_submit():
+            update_data = {}
+            if form.name_kampus.data:
+                update_data["name_kampus"] = form.name_kampus.data
+            if form.alamat_kampus.data:
+                update_data["alamat_kampus"] = form.alamat_kampus.data
+
+            result = update_record(model_kampus, id_kampus, **update_data)
+
+            if result["success"]:
+                return (
+                    jsonify(
+                        {"success": True, "message": "Data kampus berhasil diupdate!"}
+                    ),
+                    200,
+                )
+            else:
+                return jsonify({"success": False, "error": result["error"]}), 400
+
+        return (
+            jsonify(
+                {"success": False, "error": "Form tidak valid", "details": form.errors}
+            ),
+            400,
+        )
+
+    except Exception as e:
+        print("❌ Exception di kampusupdate:", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500

@@ -19,7 +19,7 @@ columns_level = [
 ]
 
 
-column_kampus = [
+columns_kampus = [
     {"data": "No", "className": "text-center align-middle"},
     {"data": "name_kampus", "className": "text-center align-middle"},
     {"data": "alamat_kampus", "className": "text-center align-middle"},
