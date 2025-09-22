@@ -79,12 +79,12 @@ $(document).ready(function() {
     initUserSelect();
 
     // Event change Website
-    $('#websiteSelect').change(function() {
-        let website_id = $(this).val();
+    $('#kampusSelect').change(function() {
+        let kampus_id = $(this).val();
 
-        if (website_id) {
+        if (kampus_id) {
             $.ajax({
-                url: `/get_users_by_website/${website_id}`,
+                url: `/get_users_by_kampus/${kampus_id}`,
                 type: 'GET',
                 dataType: 'json',
                 success: function(users) {

@@ -107,6 +107,7 @@ from controler import (
     kampus_bp,
     kampusaccount_bp,
     updatekampus,
+    update_page,
 )
 
 app = Flask(__name__)
@@ -124,6 +125,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = "AULSKJ"
 
 # ROUTE CONTROLER
+app.register_blueprint(update_page)
 
 app.register_blueprint(kampus_bp)
 app.register_blueprint(kampusaccount_bp)
@@ -305,6 +307,75 @@ def index():
 
     response.headers["Expires"] = "0"
 
+    return response
+
+
+@app.route("/PageSetting", methods=["GET", "POST"])
+def PageSetting():
+    uniqid = request.cookies.get("uniqID")
+    leveling = request.cookies.get("lvlUser")
+    ICON = get_icon_url()
+    titlez = title_website
+    cardtitle = "Data Setting Page"
+
+    if uniqid is None:
+        return redirect(url_for("logout"))
+
+    accountid = model_useraccount.query.filter( model_useraccount.id_account == uniqid).first()
+
+    page_setting = model_page_setting.query.filter_by(
+        id_account=accountid.id_account
+    ).first()
+    page_check = page_setting.page4
+
+    if int(page_check) != 2:
+        return logout()
+
+    sidebar_items = []
+    all_pages = model_page.query.all()
+
+    # WEBSITE_USER_OPTIONS untuk dropdown Website
+    if str(leveling) == "1":
+        KAMPUS_USER_OTIONS = fetch_kampus_super()
+    else:
+        id_kampus = model_useraccount.query.filter_by(id_account=uniqid).first()
+        kampusID = id_kampus.kode_kampus
+        KAMPUS_USER_OTIONS = fetch_kampus_admin(kampusID)
+
+    # Mapping page
+    if page_setting:
+        for page in all_pages:
+            flag = getattr(page_setting, f"page{page.id_page}", None)
+            if flag == "2":
+                sidebar_items.append(
+                    {
+                        "name_page": page.name_page,
+                        "icon_page": page.icon_page,
+                        "url_page": page.url_page,
+                    }
+                )
+    else:
+        for page in all_pages:
+            sidebar_items.append(
+                {
+                    "name_page": page.name_page,
+                    "icon_page": page.icon_page,
+                    "url_page": page.url_page,
+                }
+            )
+
+    html_content = render_template(
+        dashboard_screen,
+        title=titlez,
+        ICONIMAGES=ICON,
+        sidebar_items=sidebar_items,
+        cardtitle=cardtitle,
+        page4=page_check,
+        kampusz=KAMPUS_USER_OTIONS,
+    )
+
+    response = make_response(html_content)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
 
 
@@ -1173,6 +1244,36 @@ def ajaxSidebar():
 
 
 # GET AJAX ROUTE {Fungsi untuk Edit Data}
+
+
+@app.route("/get_users_by_kampus/<int:kampus_id>")
+def get_users_by_kampus(kampus_id):
+    users = model_useraccount.query.filter_by(kode_kampus=kampus_id).all()
+    user_list = [{"id": u.id_account, "name": u.email} for u in users]
+    return jsonify(user_list)
+
+
+@app.route("/get_page_setting/<int:id_account>")
+def get_page_setting(id_account):
+    # Cari page setting berdasarkan id_account langsung
+    page_setting = model_page_setting.query.filter_by(id_account=id_account).first()
+    if not page_setting:
+        return jsonify({})  # kosong kalau tidak ditemukan
+
+    data = {
+        "page1": page_setting.page1,
+        "page2": page_setting.page2,
+        "page3": page_setting.page3,
+        "page4": page_setting.page4,
+        "page5": page_setting.page5,
+        "page6": page_setting.page6,
+        "page7": page_setting.page7,
+        "page8": page_setting.page8,
+        "page9": page_setting.page9,
+        "page10": page_setting.page10,
+        "page11": page_setting.page11,
+    }
+    return jsonify(data)
 
 
 @app.route("/get_kampus_data", methods=["GET"])

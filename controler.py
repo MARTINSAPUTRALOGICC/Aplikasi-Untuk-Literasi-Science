@@ -102,7 +102,7 @@ def update_page_setting():
         return jsonify({"success": False, "error": "Setting user belum ada di DB"})
 
     # Default semua ke "1" (tidak dipilih)
-    pages_data = {f"page{i}": "1" for i in range(1, 8)}
+    pages_data = {f"page{i}": "1" for i in range(1, 12)}
 
     # Checklist yang dipilih diubah jadi "2"
     for p in selected_pages:
@@ -573,3 +573,7 @@ def kampusupdate(id_kampus):
     except Exception as e:
         print("❌ Exception di kampusupdate:", str(e))
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+
+
