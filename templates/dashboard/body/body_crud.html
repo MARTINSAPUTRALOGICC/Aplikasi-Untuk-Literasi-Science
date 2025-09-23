@@ -14,10 +14,10 @@
 <form id="assignFormCrud" class="card p-4 shadow-sm">
     <!-- Website -->
     <div class="mb-3">
-        <label class="form-label fw-bold">Pilih Website</label>
-        <select class="form-select" id="websiteSelectCrud" name="website" required>
-            <option value="">-- Pilih Website --</option>
-            {% for name, value in websites %}
+        <label class="form-label fw-bold">Pilih Kampus</label>
+        <select class="form-select" id="kampusSelect" name="kampus" required>
+            <option value="">-- Pilih Kampus --</option>
+            {% for name, value in kampusz %}
                 <option value="{{ value }}">{{ name }}</option>
             {% endfor %}
         </select>

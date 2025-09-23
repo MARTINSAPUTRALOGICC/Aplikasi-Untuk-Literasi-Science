@@ -108,6 +108,7 @@ from controler import (
     kampusaccount_bp,
     updatekampus,
     update_page,
+    update_crud,
 )
 
 app = Flask(__name__)
@@ -125,6 +126,10 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = "AULSKJ"
 
 # ROUTE CONTROLER
+
+
+app.register_blueprint(update_crud)
+
 app.register_blueprint(update_page)
 
 app.register_blueprint(kampus_bp)
@@ -371,6 +376,75 @@ def PageSetting():
         sidebar_items=sidebar_items,
         cardtitle=cardtitle,
         page4=page_check,
+        kampusz=KAMPUS_USER_OTIONS,
+    )
+
+    response = make_response(html_content)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
+
+@app.route("/SettingCRUD", methods=["GET", "POST"])
+def SettingCRUD():
+    uniqid = request.cookies.get("uniqID")
+    leveling = request.cookies.get("lvlUser")
+    ICON = get_icon_url()
+    titlez = title_website
+    cardtitle = "Data CRUD Page"
+
+    if uniqid is None:
+        return redirect(url_for("logout"))
+
+    accountid = model_useraccount.query.filter(model_useraccount.id_account == uniqid).first()
+
+    page_setting = model_page_setting.query.filter_by(
+        id_account=accountid.id_account
+    ).first()
+    page_check = page_setting.page5
+
+    if int(page_check) != 2:
+        return logout()
+
+    sidebar_items = []
+    all_pages = model_page.query.all()
+
+    # WEBSITE_USER_OPTIONS untuk dropdown Website
+    if str(leveling) == "1":
+        KAMPUS_USER_OTIONS = fetch_kampus_super()
+    else:
+        id_kampus = model_useraccount.query.filter_by(id_account=uniqid).first()
+        kampusID = id_kampus.kode_kampus
+        KAMPUS_USER_OTIONS = fetch_kampus_admin(kampusID)
+
+    # Mapping page
+    if page_setting:
+        for page in all_pages:
+            flag = getattr(page_setting, f"page{page.id_page}", None)
+            if flag == "2":
+                sidebar_items.append(
+                    {
+                        "name_page": page.name_page,
+                        "icon_page": page.icon_page,
+                        "url_page": page.url_page,
+                    }
+                )
+    else:
+        for page in all_pages:
+            sidebar_items.append(
+                {
+                    "name_page": page.name_page,
+                    "icon_page": page.icon_page,
+                    "url_page": page.url_page,
+                }
+            )
+
+    html_content = render_template(
+        dashboard_screen,
+        title=titlez,
+        ICONIMAGES=ICON,
+        sidebar_items=sidebar_items,
+        cardtitle=cardtitle,
+        page5=page_check,
         kampusz=KAMPUS_USER_OTIONS,
     )
 
@@ -1388,6 +1462,22 @@ def get_account_data():
     }
 
     return jsonify(role_data)
+
+
+@app.route("/get_crud_setting/<int:id_account>")
+def get_crud_setting(id_account):
+    setting = model_setting_crud.query.filter_by(id_account=id_account).first()
+    if not setting:
+        return jsonify({"error": "Data tidak ditemukan"}), 404
+
+    return jsonify(
+        {
+            "create_setting": setting.create_setting,
+            "update_setting": setting.update_setting,
+            "delete_setting": setting.delete_setting,
+            "table_setting": setting.table_setting,
+        }
+    )
 
 
 # --- Jalankan Flask ---
