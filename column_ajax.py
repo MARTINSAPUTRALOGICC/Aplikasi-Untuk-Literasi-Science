@@ -34,3 +34,11 @@ columns_sidebar = [
     {"data": "url_page", "className": "text-center align-middle"},
     {"data": None, "className": "text-center align-middle", "orderable": False},
 ]
+
+
+columns_matapel = [
+    {"data": "No", "className": "text-center align-middle"},
+    {"data": "kode_kampus", "className": "text-center align-middle"},
+    {"data": "nama_mk", "className": "text-center align-middle"},
+    {"data": None, "className": "text-center align-middle", "orderable": False},
+]

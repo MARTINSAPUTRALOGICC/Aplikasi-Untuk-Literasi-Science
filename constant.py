@@ -22,6 +22,8 @@ column_useraccount = [
 column_kampus = ["Number", "Name Kampus", "Alamat Kampus", "Action"]
 column_sidebar = ["Number","Name Page","Icon Page","Url Page","Action"] 
 column_role = ["Number","Name Level","Action"]
+column_matapel = ["Number", "Kampus","Nama MataPelajaran", "Action"]
+
 
 def get_icon_url():
     return url_for("static", filename="assets/book.png")
@@ -38,6 +40,7 @@ ajaxaccount = "/ajaxAccount"
 ajaxlevel = "/ajaxLevel"
 ajaxkampus = "/ajaxKampus"
 ajaxsidebar = "/ajaxSidebar"
+ajaxmatpel = "/ajaxMatapel"
 
 
 # ROUTE GET AJAX
@@ -45,6 +48,8 @@ getajaxaccount = "/get_account_data"
 getajaxlevel = "/get_level_data"
 getajaxkampus = "/get_kampus_data"
 getajaxsidebar = "/get_sidebar_data"
+getajaxmatpel = "/get_matapel_data"
+
 
 # CRUD ROUTE
 insertaccountcrud = "useraccount.create_useraccount"
@@ -64,6 +69,11 @@ insertkampuscrud = "kampusaccount.createkampus"
 deletekampuscrud = "/kampus/delete/${productId}"
 updatekampuscrud = "/kampusupdate/${productId}"
 
+insertmatpelcrud = "matapelaccount.creatematapel"
+deletematpelcrud = "/matapel/delete/${productId}"
+updatematpelcrud = "/matapelupdate/${productId}"
+
+
 server = "localhost"
 user_server = "root"
 password_server = ""
@@ -75,9 +85,11 @@ Dashboard = "dashboard"
 Leveluser = "LevelUser"
 Kampus = "Kampus"
 Sidebarpage = "Page"
+MataKuliah = "Matpel"
 
 # ROUTE GET COLUMN
 page1 = "account"
 page2 = "leveluser"
 page3 = "sidebar"
 page6 = "kampus"
+page7 = "matapelajaran"

@@ -9,6 +9,13 @@ from model import (
     model_page,
     model_setting_crud,
     model_kampus,
+    model_matapel,
+    model_hasilsiswa,
+    model_finish_task,
+    model_jawaban,
+    model_soal,
+    model_task,
+    
 )
 from flask_wtf.csrf import CSRFProtect
 
@@ -24,7 +31,7 @@ from helper import (
     fetch_kampus,
     fetch_status_user_options,
 )
-from column_ajax import columns_account, columns_level, columns_sidebar, columns_kampus
+from column_ajax import columns_account, columns_level, columns_sidebar, columns_kampus,columns_matapel
 from flask import (
     Flask,
     render_template,
@@ -56,22 +63,28 @@ from constant import (
     column_role,
     column_sidebar,
     column_kampus,
+    column_matapel,
     ajaxsidebar,
+    ajaxmatpel,
     ajaxaccount,
     ajaxlevel,
     ajaxkampus,
+    insertmatpelcrud,
     insertaccountcrud,
     insertsidebarcrud,
     insertlevelcrud,
     insertkampuscrud,
+    deletematpelcrud,
     deletekampuscrud,
     deleteaccountcrud,
     deletesidebarcrud,
     deletelevelcrud,
+    updatematpelcrud,
     updatekampuscrud,
     updateaccountcrud,
     updatesidebarcrud,
     updatelevelcrud,
+    getajaxmatpel,
     getajaxaccount,
     getajaxlevel,
     getajaxkampus,
@@ -80,6 +93,7 @@ from constant import (
     page1,
     page3,
     page6,
+    page7,
     
 )
 
@@ -90,6 +104,8 @@ from form_field import (
     RoleForm,
     PageForm,
     KampusForm,
+    MataPelajaranForm,
+    
 
 )
 from flask import Flask, request, jsonify, make_response
@@ -109,6 +125,9 @@ from controler import (
     updatekampus,
     update_page,
     update_crud,
+    matapel_bp,
+    matapelaccount_bp,
+    updatematapel,
 )
 
 app = Flask(__name__)
@@ -127,6 +146,9 @@ app.secret_key = "AULSKJ"
 
 # ROUTE CONTROLER
 
+app.register_blueprint(matapel_bp)
+app.register_blueprint(matapelaccount_bp)
+app.register_blueprint(updatematapel)
 
 app.register_blueprint(update_crud)
 
@@ -920,7 +942,7 @@ def Page():
 
 @app.route("/Kampus", methods=["GET", "POST"])
 def Kampus():
-    
+
     uniqid = request.cookies.get("uniqID")
     ICON = get_icon_url()
     titlez = title_website
@@ -1044,7 +1066,217 @@ def Kampus():
         return response
 
 
+@app.route("/Matpel", methods=["GET", "POST"])
+def Matpel():
+    uniqid = request.cookies.get("uniqID")
+    ICON = get_icon_url()
+    titlez = title_website
+
+    if uniqid is None:
+        return redirect(url_for("logout"))
+
+    leveling = request.cookies.get("levelUser")
+    cardtitle = "Data Mata Pelajaran"
+
+    form = MataPelajaranForm()
+
+    count_id_sidebar = 1
+    accountid = model_useraccount.query.filter(
+        model_useraccount.id_account == uniqid
+    ).first()
+    page_setting = model_page_setting.query.filter_by(
+        id_account=accountid.id_account
+    ).first()
+    page_check = page_setting.page7
+
+    if int(page_check) != 2:
+        return logout()
+    else:
+        crud = model_setting_crud.query.filter_by(
+            id_account=accountid.id_account
+        ).first()
+        create = int(crud.create_setting)
+        update = int(crud.update_setting)
+        delete = int(crud.delete_setting)
+        tabel = int(crud.table_setting)
+
+        sidebar_items = []
+        modified_data = []
+
+        if str(leveling) == "1":
+            KAMPUS_USER_OTIONS = fetch_kampus_super()
+            matapelz = model_matapel.query.all()
+        else:
+            id_kampus = model_useraccount.query.filter_by(id_account=uniqid).first()
+            kampusID = id_kampus.kode_kampus
+            KAMPUS_USER_OTIONS = fetch_kampus_admin(kampusID)
+            matapelz = model_matapel.query.filter_by(kode_kampus=kampusID).all()
+
+        # data user
+        for matapels in matapelz:
+            kampus_client = fetch_kampus(matapels.kode_kampus)
+            kampus_type_display = kampus_client[0][0] if kampus_client else "Unknown"
+
+            modified_matpel = [
+                count_id_sidebar,
+                kampus_type_display,
+                matapels.nama_mk,
+                matapels.id_mk,
+            ]
+            modified_data.append(modified_matpel)
+            count_id_sidebar += 1
+
+        # pakai data terakhir untuk form_edit
+        if matapelz:
+            last_matapel = matapelz[-1]
+            form_edit = [
+                {
+                    "label": "Kampus",
+                    "input_type": "select",
+                    "name": "kode_kampus",
+                    "value": str(last_matapel.kode_kampus),
+                    "options": KAMPUS_USER_OTIONS,
+                },
+                {
+                    "label": "Mata Pelajaran",
+                    "input_type": "text",
+                    "name": "nama_mk",
+                    "value": last_matapel.nama_mk,
+                },
+            ]
+        else:
+            form_edit = []
+
+        # ambil semua page
+        all_pages = model_page.query.all()
+
+        if page_setting:
+            for page in all_pages:
+                flag = getattr(page_setting, f"page{page.id_page}", None)
+                if flag == "2":
+                    sidebar_items.append(
+                        {
+                            "name_page": page.name_page,
+                            "icon_page": page.icon_page,
+                            "url_page": page.url_page,
+                        }
+                    )
+        else:
+            for page in all_pages:
+                sidebar_items.append(
+                    {
+                        "name_page": page.name_page,
+                        "icon_page": page.icon_page,
+                        "url_page": page.url_page,
+                    }
+                )
+
+        form_input = [
+            {
+                "label": "Kampus",
+                "input_type": "select",
+                "name": "kode_kampus",
+                "value": KAMPUS_USER_OTIONS,
+                "options": KAMPUS_USER_OTIONS,
+            },
+            {"label": "Mata Pelajaran", "input_type": "text", "name": "nama_mk"},
+        ]
+
+        html_content = render_template(
+            dashboard_screen,
+            title=titlez,
+            columns=columns_matapel,
+            ICONIMAGES=ICON,
+            sidebar_items=sidebar_items,
+            column_names=column_matapel,
+            data_list=form_input,
+            data_list1=form_edit,
+            form=form,
+            form1=form,
+            insert_ui=create,
+            tabel_ui=tabel,
+            update_ui=update,
+            delete_ui=delete,
+            users=modified_data,
+            cardtitle=cardtitle,
+            page=page6,
+            ajax_post=ajaxmatpel,
+            get_ajax=getajaxmatpel,
+            insertaccount=insertmatpelcrud,
+            accountedelete=deletematpelcrud,
+            updateaccount=updatematpelcrud,
+        )
+
+        response = make_response(html_content)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+
 # AJAX ROUTE {Fungsi penarikan Data}
+
+
+@app.route("/ajaxMatapel", methods=["POST", "GET"])
+def ajaxMatapel():
+    try:
+        if request.method == "POST":
+            draw = int(request.form.get("draw", 1))
+            row = int(request.form.get("start", 0))
+            rowperpage = int(request.form.get("length", 10))
+            searchValue = request.form.get("search[value]", "")
+
+            totalRecords = model_matapel.query.count()
+
+            if searchValue:
+                query = model_matapel.query.filter(
+                    model_matapel.nama_mk.like(f"%{searchValue}%"),
+                )
+                totalRecordwithFilter = query.count()
+                produklist = (
+                    query.order_by(model_matapel.id_mk.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+            else:
+                totalRecordwithFilter = totalRecords
+                produklist = (
+                    model_matapel.query.order_by(model_matapel.id_mk.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+
+            data = []
+            count_id_sidebar = row + 1
+
+            for produk in produklist:
+                kampus = model_kampus.query.filter_by(
+                    id_kampus=produk.kode_kampus
+                ).first()
+
+                kampus_name = kampus.name_kampus if kampus else "-"
+
+                data.append(
+                    {
+                        "No": count_id_sidebar,
+                        "kode_kampus": (kampus_name),
+                        "nama_mk": (produk.nama_mk if produk.nama_mk else "-"),
+                        "id": produk.id_mk,
+                    }
+                )
+                count_id_sidebar += 1
+
+            response = {
+                "draw": draw,
+                "iTotalRecords": totalRecords,
+                "iTotalDisplayRecords": totalRecordwithFilter,
+                "aaData": data,
+            }
+            return jsonify(response)
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)})
 
 
 @app.route("/ajaxKampus", methods=["POST", "GET"])
@@ -1186,11 +1418,21 @@ def ajaxAccount():
 
             # Super Admin = id 1 (semua website), Admin biasa = filter website
             if levelUser == 1:
-                base_query = model_useraccount.query
+    # Super Admin → akses semua
+             base_query = model_useraccount.query
             else:
-                base_query = model_useraccount.query.filter(
-                    model_useraccount.kode_kampus == kampusID
-                )
+                if kampusID:
+                    # Admin biasa → hanya data kampusnya & tidak bisa lihat super admin
+                    base_query = model_useraccount.query.filter(
+                        and_(
+                            model_useraccount.kode_kampus == kampusID,
+                            model_useraccount.level_user != 1
+                        )
+                    )
+                else:
+                    # Kalau kampusID kosong → jangan kasih data
+                    base_query = model_useraccount.query.filter(False)
+
 
             # total semua record (tanpa search)
             totalRecords = base_query.count()
@@ -1348,6 +1590,27 @@ def get_page_setting(id_account):
         "page11": page_setting.page11,
     }
     return jsonify(data)
+
+
+@app.route("/get_matapel_data", methods=["GET"])
+def get_matapel_data():
+    mk_id = request.args.get("id", type=int)
+    if not mk_id:
+        return jsonify({"error": "Matapel ID is required"}), 400
+
+    matapeldb = db.session.get(model_matapel, mk_id)
+    if matapeldb is None:
+        return jsonify({"error": "Account not found"}), 404
+
+    # ambil level dari cookies login user, bukan dari account target
+    role_data = {
+        "kode_kampus": matapeldb.kode_kampus,
+        "nama_mk": matapeldb.nama_mk,
+
+        
+    }
+
+    return jsonify(role_data)
 
 
 @app.route("/get_kampus_data", methods=["GET"])

@@ -177,6 +177,14 @@ function loadEditModal(productId) {
                  
                 ];
             }
+            else if (currentPage === "matapelajaran") {
+               fields = [
+                    { id: 'kode_kampus', type: 'input', value: data.kode_kampus || '' },
+                    { id: 'nama_mk', type: 'input', value: data.nama_mk || '' }
+                 
+                ];
+            }
+
 
 
             // Render ke form
@@ -205,6 +213,9 @@ function loadEditModal(productId) {
                 $('#updateForm').attr('action', `{{updateaccount}}`);
             }
             else if (currentPage === "kampus") {
+                $('#updateForm').attr('action', `{{updateaccount}}`);
+            }
+            else if (currentPage === "matapelajaran") {
                 $('#updateForm').attr('action', `{{updateaccount}}`);
             }
 

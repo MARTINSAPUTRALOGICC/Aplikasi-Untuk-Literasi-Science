@@ -92,7 +92,7 @@ class model_matapel(db.Model):
     __tablename__ = "mata_pelajaran"
     id_mk = db.Column(db.Integer, primary_key=True)
     kode_kampus = db.Column(db.Integer, nullable=False)
-    nama_m = db.Column(db.String(500), nullable=True)
+    nama_mk = db.Column(db.String(500), nullable=True)
 
 
 class model_task(db.Model):

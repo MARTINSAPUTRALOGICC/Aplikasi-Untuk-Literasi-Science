@@ -51,3 +51,8 @@ class AccountUpdate(FlaskForm):
     level_user = IntegerField("level_user", validators=[DataRequired()])
     kode_kampus = IntegerField("kode_kampus", validators=[DataRequired()])
     flag_active = IntegerField("flag_active", validators=[DataRequired()])
+
+
+class MataPelajaranForm(FlaskForm):
+    kode_kampus = IntegerField("kode_kampus", validators=[DataRequired()])
+    nama_mk = StringField("nama_mk", validators=[DataRequired()])

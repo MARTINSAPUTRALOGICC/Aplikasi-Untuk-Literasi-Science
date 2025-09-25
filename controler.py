@@ -21,15 +21,18 @@ from flask import (
     make_response,
 )
 
-from model import db, model_useraccount, model_level,model_page,model_page_setting,model_setting_crud,model_kampus
+from model import db, model_useraccount, model_level,model_page,model_page_setting,model_setting_crud,model_kampus, model_matapel
 
-from form_field import RoleForm, AccountUpdate, KampusForm, PageForm
-from constant import Dashboard, Leveluser, Kampus, Sidebarpage
+from form_field import RoleForm, AccountUpdate, KampusForm, PageForm, MataPelajaranForm
+from constant import Dashboard, Leveluser, Kampus, Sidebarpage, MataKuliah
+
+matapel_bp = Blueprint("matapel_bp",__name__, url_prefix="/matapel")
+matapelaccount_bp = Blueprint("matapelaccount",__name__)
+updatematapel = Blueprint("matapelupdate", __name__)
 
 account_bp = Blueprint("account_bp", __name__, url_prefix="/account")
 useraccount_bp = Blueprint("useraccount", __name__)
 updateaccount = Blueprint("userupdate", __name__)
-
 
 level_bp = Blueprint("level_bp", __name__, url_prefix="/level")
 levelaccount_bp = Blueprint("levelaccount", __name__)
@@ -45,6 +48,108 @@ updatesidebar = Blueprint("sidebarupadate", __name__)
 
 update_page = Blueprint("update_page", __name__)
 update_crud = Blueprint("update_crud", __name__)
+
+
+@matapel_bp.route("/delete/<int:record_id>", methods=["POST"])
+def delete_matapel(record_id):
+    result = delete_record(model_matapel, record_id)
+    if result.get("success"):
+        return jsonify({"status": "success", "message": result.get("message")})
+    else:
+        return jsonify({"status": "error", "message": result.get("error")}), 400
+
+
+@matapelaccount_bp.route("/matapelaccount/create", methods=["POST"])
+def creatematapel():
+    try:
+        # Ambil data dari form (HTML form)
+        name_mk_user = request.form.get("nama_mk")
+        kode_kampus_user = request.form.get("kode_kampus")
+
+        # ✅ Cek apakah email sudah ada
+        existing_user = model_matapel.query.filter_by(nama_mk=name_mk_user).first()
+        if existing_user:
+            print("Nama Mata Kuliah sudah terdaftar:", name_mk_user)
+            flash("Nama Mata Kuliah sudah terdaftar!", "warning")
+            return redirect(url_for(MataKuliah))
+
+        # Data yang mau diinsert
+        data = {
+            "kode_kampus": kode_kampus_user,
+            "nama_mk": name_mk_user,
+        }
+
+        print("📌 DATA SEBELUM INSERT:", data)
+
+        # Insert ke DB via helper
+        result = create_record(model_matapel, **data)
+        print("📌 RESULT INSERT:", result)
+
+        if result["success"]:
+            flash("Mata Kuliah berhasil dibuat!", "success")
+            return redirect(url_for(MataKuliah))
+        else:
+            flash(f"Gagal: {result['error']}", "danger")
+            return redirect(url_for(MataKuliah))
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()  # biar error detail muncul di terminal
+        flash(f"Error: {str(e)}", "danger")
+        return redirect(url_for(MataKuliah))
+
+
+@updatematapel.route(
+    "/matapelupdate/<int:id_mk>", methods=["POST"], endpoint="matapelupdate"
+)
+def matapelupdate(id_mk):
+    try:
+        form = MataPelajaranForm()
+        matpeldb = model_matapel.query.filter_by(id_mk=id_mk).first()
+
+        if not matpeldb:
+            return jsonify({"success": False, "error": "Mata Kuliah tidak ditemukan"}), 404
+
+        if form.validate_on_submit():
+            update_data = {}
+
+            # Cek apakah name_level diganti
+
+            if form.kode_kampus.data:
+                update_data["kode_kampus"] = form.kode_kampus.data
+            if form.nama_mk.data:
+                update_data["nama_mk"] = form.nama_mk.data
+
+            # ✅ Jalankan update jika ada perubahan
+            if update_data:
+                result = update_record(model_matapel, id_mk, **update_data)
+                if not result.get("success"):
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "error": result.get("error", "Update gagal"),
+                            }
+                        ),
+                        400,
+                    )
+
+            return (
+                jsonify({"success": True, "message": "Mata Pelajaran berhasil diupdate."}),
+                200,
+            )
+
+        # Kalau form invalid
+        print("❌ FORM ERRORS:", form.errors)
+        return (
+            jsonify({"success": False, "error": f"Form tidak valid: {form.errors}"}),
+            400,
+        )
+
+    except Exception as e:
+        print("❌ Exception di Mata Pelajaran:", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @update_crud.route("/updateCRUD", methods=["POST"])
@@ -573,7 +678,3 @@ def kampusupdate(id_kampus):
     except Exception as e:
         print("❌ Exception di kampusupdate:", str(e))
         return jsonify({"success": False, "error": str(e)}), 500
-
-
-
-
