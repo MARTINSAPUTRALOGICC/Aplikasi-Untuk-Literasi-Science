@@ -30,8 +30,12 @@ from helper import (
     fetch_active,
     fetch_kampus,
     fetch_status_user_options,
+    truncate_text,
+    fetch_matpel,
+    fetch_matkul_super,
+    fetch_matkul_admin,
 )
-from column_ajax import columns_account, columns_level, columns_sidebar, columns_kampus,columns_matapel
+from column_ajax import columns_account, columns_level, columns_sidebar, columns_kampus,columns_matapel,columns_task
 from flask import (
     Flask,
     render_template,
@@ -64,21 +68,26 @@ from constant import (
     column_sidebar,
     column_kampus,
     column_matapel,
+    column_task,
     ajaxsidebar,
     ajaxmatpel,
     ajaxaccount,
     ajaxlevel,
     ajaxkampus,
+    ajaxtask,
+    inserttaskcrud,
     insertmatpelcrud,
     insertaccountcrud,
     insertsidebarcrud,
     insertlevelcrud,
     insertkampuscrud,
+    deletetaskcrud,
     deletematpelcrud,
     deletekampuscrud,
     deleteaccountcrud,
     deletesidebarcrud,
     deletelevelcrud,
+    updatetaskcrud,
     updatematpelcrud,
     updatekampuscrud,
     updateaccountcrud,
@@ -89,11 +98,13 @@ from constant import (
     getajaxlevel,
     getajaxkampus,
     getajaxsidebar,
+    getajaxtask,
     page2,
     page1,
     page3,
     page6,
     page7,
+    page8,
     
 )
 
@@ -105,8 +116,8 @@ from form_field import (
     PageForm,
     KampusForm,
     MataPelajaranForm,
-    
-
+    TaskForm,
+    TaskFormUpdate,
 )
 from flask import Flask, request, jsonify, make_response
 from datetime import datetime, timedelta
@@ -128,6 +139,9 @@ from controler import (
     matapel_bp,
     matapelaccount_bp,
     updatematapel,
+    taskaccount_bp,
+    updatetask,
+    task_bp,
 )
 
 app = Flask(__name__)
@@ -145,6 +159,10 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.secret_key = "AULSKJ"
 
 # ROUTE CONTROLER
+app.register_blueprint(taskaccount_bp)
+app.register_blueprint(updatetask)
+app.register_blueprint(task_bp)
+
 
 app.register_blueprint(matapel_bp)
 app.register_blueprint(matapelaccount_bp)
@@ -1199,7 +1217,7 @@ def Matpel():
             delete_ui=delete,
             users=modified_data,
             cardtitle=cardtitle,
-            page=page6,
+            page=page7,
             ajax_post=ajaxmatpel,
             get_ajax=getajaxmatpel,
             insertaccount=insertmatpelcrud,
@@ -1212,7 +1230,360 @@ def Matpel():
         return response
 
 
+@app.route("/Task", methods=["GET", "POST"])
+def Task():
+    uniqid = request.cookies.get("uniqID")
+    ICON = get_icon_url()
+    titlez = title_website
+
+    if uniqid is None:
+        return redirect(url_for("logout"))
+
+    leveling = request.cookies.get("levelUser")
+    cardtitle = "Data Task"
+
+    form = TaskForm()
+    form1 = TaskFormUpdate()
+
+    count_id_sidebar = 1
+    accountid = model_useraccount.query.filter(
+        model_useraccount.id_account == uniqid
+    ).first()
+    page_setting = model_page_setting.query.filter_by(
+        id_account=accountid.id_account
+    ).first()
+    page_check = page_setting.page8
+
+    if int(page_check) != 2:
+        return logout()
+
+    crud = model_setting_crud.query.filter_by(id_account=accountid.id_account).first()
+    create = int(crud.create_setting)
+    update = int(crud.update_setting)
+    delete = int(crud.delete_setting)
+    tabel = int(crud.table_setting)
+
+    sidebar_items = []
+    modified_data = []
+
+    # ambil data task
+    if str(leveling) == "1":
+        KAMPUS_USER_OTIONS = fetch_kampus_super()
+        MATKUL_USER_OTIONS = fetch_matkul_super()
+        taskz = model_task.query.order_by(model_task.id_task.desc()).all()
+    else:
+        id_kampus = model_useraccount.query.filter_by(id_account=uniqid).first()
+        kampusID = id_kampus.kode_kampus
+        KAMPUS_USER_OTIONS = fetch_kampus_admin(kampusID)
+        MATKUL_USER_OTIONS = fetch_matkul_admin(kampusID)
+        taskz = (
+            model_task.query.filter_by(id_kampus=kampusID)
+            .order_by(model_task.id_task.desc())
+            .all()
+        )
+
+    # siapkan data table
+    for tasks in taskz:
+        kampus_client = fetch_kampus(tasks.id_kampus)
+        kampus_type_display = kampus_client[0][0] if kampus_client else "Unknown"
+
+        matkul_client = fetch_matpel(tasks.id_kampus)
+        matkul_type_display = matkul_client[0][0] if matkul_client else "Unknown"
+
+        into = truncate_text(tasks.introduction)
+
+        modified_matpel = [
+            count_id_sidebar,
+            matkul_type_display,
+            kampus_type_display,
+            tasks.label_task,
+            into,
+            tasks.video,
+            tasks.gambar,
+            tasks.audio,
+            tasks.id_task,
+        ]
+        modified_data.append(modified_matpel)
+        count_id_sidebar += 1
+
+    # form edit (ambil task terakhir)
+    if taskz:
+        last_task = taskz[-1]
+        form_edit = [
+            {
+                "label": "Introduction",
+                "input_type": "text",
+                "name": "introduction",
+                "value": last_task.introduction or "",
+            },
+            {
+                "label": "Metode Video",
+                "input_type": "select",
+                "name": "video_method",
+                "options": [("Upload File", "file"), ("Input URL", "url")],
+            },
+            {
+                "label": "Upload Video",
+                "input_type": "file",
+                "name": "file_video",
+                "accept": "video/*",
+                "class": "video-field file-field d-none",
+            },
+            {
+                "label": "Video URL",
+                "input_type": "text",
+                "name": "url_video",
+                "class": "video-field url-field d-none",
+            },
+            # IMAGE
+            {
+                "label": "Metode Image",
+                "input_type": "select",
+                "name": "image_method",
+                "options": [("Upload File", "file"), ("Input URL", "url")],
+            },
+            {
+                "label": "Upload Image",
+                "input_type": "file",
+                "name": "file_image",
+                "accept": "image/*",
+                "class": "image-field file-field d-none",
+            },
+            {
+                "label": "Image URL",
+                "input_type": "text",
+                "name": "url_image",
+                "class": "image-field url-field d-none",
+            },
+            # AUDIO
+            {
+                "label": "Metode Audio",
+                "input_type": "select",
+                "name": "audio_method",
+                "options": [("Upload File", "file"), ("Input URL", "url")],
+            },
+            {
+                "label": "Upload Audio",
+                "input_type": "file",
+                "name": "file_audio",
+                "accept": "audio/*",
+                "class": "audio-field file-field d-none",
+            },
+            {
+                "label": "Audio URL",
+                "input_type": "text",
+                "name": "url_audio",
+                "class": "audio-field url-field d-none",
+            },
+        ]
+    else:
+        form_edit = []
+
+    # sidebar
+    all_pages = model_page.query.all()
+    if page_setting:
+        for page in all_pages:
+            flag = getattr(page_setting, f"page{page.id_page}", None)
+            if flag == "2":
+                sidebar_items.append(
+                    {
+                        "name_page": page.name_page,
+                        "icon_page": page.icon_page,
+                        "url_page": page.url_page,
+                    }
+                )
+    else:
+        for page in all_pages:
+            sidebar_items.append(
+                {
+                    "name_page": page.name_page,
+                    "icon_page": page.icon_page,
+                    "url_page": page.url_page,
+                }
+            )
+
+    # form input (create)
+    form_input = [
+        {
+            "label": "Mata Pelajaran",
+            "input_type": "select",
+            "name": "id_matkul",
+            "options": MATKUL_USER_OTIONS,
+        },
+        {
+            "label": "Kampus",
+            "input_type": "select",
+            "name": "id_kampus",
+            "options": KAMPUS_USER_OTIONS,
+        },
+        {"label": "Label Task", "input_type": "text", "name": "label_task"},
+        {"label": "Introduction", "input_type": "text", "name": "introduction"},
+        # VIDEO
+        {
+            "label": "Metode Video",
+            "input_type": "select",
+            "name": "video_method",
+            "options": [("Upload File", "file"), ("Input URL", "url")],
+        },
+        {
+            "label": "Upload Video",
+            "input_type": "file",
+            "name": "file_video",
+            "accept": "video/*",
+            "class": "video-field file-field d-none",
+        },
+        {
+            "label": "Video URL",
+            "input_type": "text",
+            "name": "url_video",
+            "class": "video-field url-field d-none",
+        },
+        # IMAGE
+        {
+            "label": "Metode Image",
+            "input_type": "select",
+            "name": "image_method",
+            "options": [("Upload File", "file"), ("Input URL", "url")],
+        },
+        {
+            "label": "Upload Image",
+            "input_type": "file",
+            "name": "file_image",
+            "accept": "image/*",
+            "class": "image-field file-field d-none",
+        },
+        {
+            "label": "Image URL",
+            "input_type": "text",
+            "name": "url_image",
+            "class": "image-field url-field d-none",
+        },
+        # AUDIO
+        {
+            "label": "Metode Audio",
+            "input_type": "select",
+            "name": "audio_method",
+            "options": [("Upload File", "file"), ("Input URL", "url")],
+        },
+        {
+            "label": "Upload Audio",
+            "input_type": "file",
+            "name": "file_audio",
+            "accept": "audio/*",
+            "class": "audio-field file-field d-none",
+        },
+        {
+            "label": "Audio URL",
+            "input_type": "text",
+            "name": "url_audio",
+            "class": "audio-field url-field d-none",
+        },
+    ]
+
+    # render
+    html_content = render_template(
+        dashboard_screen,
+        title=titlez,
+        columns=columns_task,
+        ICONIMAGES=ICON,
+        sidebar_items=sidebar_items,
+        column_names=column_task,
+        data_list=form_input,
+        data_list1=form_edit,
+        form=form,
+        form1=form1,
+        insert_ui=create,
+        tabel_ui=tabel,
+        update_ui=update,
+        delete_ui=delete,
+        users=modified_data,
+        cardtitle=cardtitle,
+        page=page8,
+        ajax_post=ajaxtask,
+        get_ajax=getajaxtask,
+        insertaccount=inserttaskcrud,
+        accountedelete=deletetaskcrud,
+        updateaccount=updatetaskcrud,
+    )
+
+    response = make_response(html_content)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
+
 # AJAX ROUTE {Fungsi penarikan Data}
+@app.route("/ajaxTask", methods=["GET", "POST"])
+def ajaxTask():
+    try:
+        if request.method == "POST":
+            draw = int(request.form.get("draw", 1))
+            row = int(request.form.get("start", 0))
+            rowperpage = int(request.form.get("length", 10))
+            searchValue = request.form.get("search[value]", "")
+
+            totalRecords = model_task.query.count()
+
+            if searchValue:
+                query = model_task.query.filter(
+                    model_task.label_task.like(f"%{searchValue}%"),
+                )
+                totalRecordwithFilter = query.count()
+                produklist = (
+                    query.order_by(model_task.id_task.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+            else:
+                totalRecordwithFilter = totalRecords
+                produklist = (
+                    model_task.query.order_by(model_task.id_task.desc())
+                    .offset(row)
+                    .limit(rowperpage)
+                    .all()
+                )
+
+            data = []
+            count_id_sidebar = row + 1
+
+            for produk in produklist:
+                kampus = model_kampus.query.filter_by(
+                    id_kampus=produk.id_kampus
+                ).first()
+
+                matkul = model_matapel.query.filter_by(id_mk=produk.id_matkul).first()
+
+                kampus_name = kampus.name_kampus if kampus else "-"
+                matkul_name = matkul.nama_mk if matkul else "-"
+
+                data.append(
+                    {
+                        "No": count_id_sidebar,
+                        "id_matkul": (matkul_name),
+                        "id_kampus": (kampus_name),
+                        "label_task": (produk.label_task if produk.label_task else "-"),
+                        "introduction": truncate_text(
+                            produk.introduction, 50
+                        ),  # 🔥 potong teks panjang
+                        "video": (produk.video if produk.video else "-"),
+                        "gambar": (produk.gambar if produk.gambar else "-"),
+                        "audio": (produk.audio if produk.audio else "-"),
+                        "id": produk.id_task,
+                    }
+                )
+                count_id_sidebar += 1
+
+            response = {
+                "draw": draw,
+                "iTotalRecords": totalRecords,
+                "iTotalDisplayRecords": totalRecordwithFilter,
+                "aaData": data,
+            }
+            return jsonify(response)
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)})
 
 
 @app.route("/ajaxMatapel", methods=["POST", "GET"])
@@ -1560,6 +1931,28 @@ def ajaxSidebar():
 
 
 # GET AJAX ROUTE {Fungsi untuk Edit Data}
+
+
+@app.route("/get_task_data", methods=["GET"])
+def get_task_data():
+    task_id = request.args.get("id", type=int)
+    if not task_id:
+        return jsonify({"error": "Task ID is required"}), 400
+
+    taskdb = db.session.get(model_task, task_id)
+    print("Task ID:", task_id)
+    print("TaskDB:", taskdb)
+
+    if taskdb is None:
+        return jsonify({"error": "Task not found"}), 404
+
+    print("Introduction:", taskdb.introduction)
+
+    role_data = {
+        "introduction": taskdb.introduction,
+    }
+
+    return jsonify(role_data)
 
 
 @app.route("/get_users_by_kampus/<int:kampus_id>")

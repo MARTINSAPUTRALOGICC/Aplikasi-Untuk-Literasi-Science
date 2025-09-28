@@ -29,6 +29,8 @@
 
 
     {% include "Dashboard/modal/modal_edit.html" %}
+        {% include "Dashboard/modal/modal_media.html" %}
+
 
 </div>
 <script>
@@ -37,10 +39,9 @@ const deletePermission = {{ delete_ui }};
 let currentPage = "{{ page }}"; // misal "account" atau "user"
 
 const ajaxUrl = "{{ ajax_post }}";
-
 var columns = {{ columns | tojson }};
 
-// Render kolom "status" (index 6) dengan warna
+// === Render kolom status ===
 if (columns[6]) {
     columns[6].render = function(data) {
         if (data === "No Active") {
@@ -52,22 +53,164 @@ if (columns[6]) {
     };
 }
 
-// Render kolom Action (biasanya kolom terakhir)
-var actionColIndex = columns.findIndex(c => c.data === null || c.data === "Action" || c.data === "id");
+function isValidMedia(data) {
+    return data && data !== "-" && data.toLowerCase() !== "null" && data.trim() !== "";
+}
 
-// Jika kolom Action ditemukan
+// === Render kolom gambar ===
+// === Render kolom gambar ===
+var gambarColIndex = columns.findIndex(c => c.data === "gambar");
+if (gambarColIndex !== -1) {
+    columns[gambarColIndex].render = function(data) {
+        if (isValidMedia(data)) {
+            if (!data.startsWith("http")) {
+                data = "/static/" + data;
+            }
+            return `<button class="btn btn-sm btn-primary"
+                        onclick="showMedia('image','${data}')">
+                        Lihat Gambar
+                    </button>`;
+        }
+        return "-"; // benar-benar kosong kalau invalid
+    };
+}
+
+// === Render kolom video ===
+var videoColIndex = columns.findIndex(c => c.data === "video");
+if (videoColIndex !== -1) {
+    columns[videoColIndex].render = function(data) {
+        if (isValidMedia(data)) {
+            if (!data.startsWith("http")) {
+                data = "/static/" + data;
+            }
+            return `<button class="btn btn-sm btn-primary"
+                        onclick="showMedia('video','${data}')">Lihat Video</button>`;
+        }
+        return "-";
+    };
+}
+
+// === Render kolom audio ===
+var audioColIndex = columns.findIndex(c => c.data === "audio");
+if (audioColIndex !== -1) {
+    columns[audioColIndex].render = function(data) {
+        if (isValidMedia(data)) {
+            if (!data.startsWith("http")) {
+                data = "/static/" + data;
+            }
+            return `<button class="btn btn-sm btn-success"
+                        onclick="showMedia('audio','${data}')">Dengar Audio</button>`;
+        }
+        return "-";
+    };
+}
+
+// === Render kolom Action ===
+var actionColIndex = columns.findIndex(c => c.data === null || c.data === "Action" || c.data === "id");
 if (actionColIndex !== -1) {
     columns[actionColIndex].render = function(data, type, row) {
         let buttons = "";
         if (updatePermission === 2) {
-            buttons += `<a href='javascript:void(0);' class='btn btn-warning btn-xs' onclick='loadEditModal("${row.id}")'>Edit</a>&nbsp;&nbsp;`;
+            buttons += `<a href="javascript:void(0);" class="btn btn-warning btn-xs"
+                        onclick="loadEditModal('${row.id}')">Edit</a>&nbsp;&nbsp;`;
         }
         if (deletePermission === 2) {
-            buttons += `<a href='javascript:void(0);' class='btn btn-danger btn-xs delete-button' data-id='${row.id}'>Delete</a>`;
+            buttons += `<a href="javascript:void(0);" class="btn btn-danger btn-xs delete-button"
+                        data-id="${row.id}">Delete</a>`;
         }
         return buttons || "-";
     };
 }
+
+ 
+function showMedia(type, src) {
+    let html = "";
+
+    // === Handle Google Drive ===
+    if (src.includes("drive.google.com")) {
+        // Ambil FILE_ID (support /d/FILE_ID dan format lain)
+        let match = src.match(/\/d\/([^/]+)/);
+        if (match) {
+            let fileId = match[1];
+
+            if (type === "image") {
+                // Coba uc?export=view, kalau gagal pakai lh3.googleusercontent
+                let imgUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+                html = `<img src="${imgUrl}" 
+                            onerror="this.onerror=null;this.src='https://lh3.googleusercontent.com/d/${fileId}'"
+                            class="img-fluid" style="max-height:500px;">`;
+            } else if (type === "video") {
+                // Lebih stabil via preview iframe
+                let videoUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                html = `<iframe src="${videoUrl}" 
+                                width="640" height="480"
+                                allow="autoplay"
+                                style="border:0; max-width:100%; max-height:500px;">
+                        </iframe>`;
+            } else if (type === "audio") {
+                // Audio pakai direct download
+                let audioUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+                html = `<audio controls autoplay style="width:100%;">
+                            <source src="${audioUrl}" type="audio/mpeg">
+                            Browser tidak support audio.
+                        </audio>`;
+            }
+        }
+    }
+
+    // === Handle YouTube ===
+    else if (src.includes("youtube.com") || src.includes("youtu.be")) {
+        let videoId = "";
+        if (src.includes("youtube.com/watch?v=")) {
+            videoId = src.split("v=")[1].split("&")[0];
+        } else if (src.includes("youtu.be/")) {
+            videoId = src.split("youtu.be/")[1].split("?")[0];
+        }
+
+        if (type === "audio") {
+            // Mini player untuk audio-only
+            html = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1"
+                            frameborder="0"
+                            allow="autoplay; encrypted-media"
+                            style="width:100%; height:80px;">
+                    </iframe>`;
+        } else {
+            // Full video player
+            html = `<div class="ratio ratio-16x9">
+                        <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1"
+                                frameborder="0"
+                                allow="autoplay; encrypted-media"
+                                allowfullscreen>
+                        </iframe>
+                    </div>`;
+        }
+    }
+
+    // === Handle file biasa (lokal / URL langsung) ===
+    else {
+        if (type === "image") {
+            html = `<img src="${src}" class="img-fluid" style="max-height:500px;">`;
+        } else if (type === "video") {
+            html = `<video controls autoplay style="max-width:100%;max-height:500px;">
+                        <source src="${src}" type="video/mp4">
+                        Browser tidak support video.
+                    </video>`;
+        } else if (type === "audio") {
+            html = `<audio controls autoplay style="width:100%;">
+                        <source src="${src}" type="audio/mpeg">
+                        Browser tidak support audio.
+                    </audio>`;
+        }
+    }
+
+    // Tampilkan di modal
+    document.getElementById("mediaContent").innerHTML = html;
+    $("#mediaModal").modal("show");
+}
+
+
+
+
 
 
 $(document).ready(function() {
@@ -184,6 +327,24 @@ function loadEditModal(productId) {
                  
                 ];
             }
+            else if (currentPage === "matapelajaran") {
+               fields = [
+                    { id: 'kode_kampus', type: 'input', value: data.kode_kampus || '' },
+                    { id: 'nama_mk', type: 'input', value: data.nama_mk || '' }
+                 
+                ];
+            }
+
+            else if (currentPage === "task") 
+            {
+                
+                fields = [
+                
+                { id: 'introduction', type: 'input', value: data.introduction || '' }
+
+                ];
+             }
+
 
 
 
@@ -218,7 +379,9 @@ function loadEditModal(productId) {
             else if (currentPage === "matapelajaran") {
                 $('#updateForm').attr('action', `{{updateaccount}}`);
             }
-
+            else if (currentPage === "task") {
+                $('#updateForm').attr('action', `{{updateaccount}}`);
+            }
             // Tampilkan modal
             $('#modaledit').modal('show');
         }

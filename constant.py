@@ -23,6 +23,7 @@ column_kampus = ["Number", "Name Kampus", "Alamat Kampus", "Action"]
 column_sidebar = ["Number","Name Page","Icon Page","Url Page","Action"] 
 column_role = ["Number","Name Level","Action"]
 column_matapel = ["Number", "Kampus","Nama MataPelajaran", "Action"]
+column_task = ["Number", "Nama Matkul", "Kampus","Label Task","Íntroduction","Video","'Gambar","Audio", "Action"]
 
 
 def get_icon_url():
@@ -41,6 +42,7 @@ ajaxlevel = "/ajaxLevel"
 ajaxkampus = "/ajaxKampus"
 ajaxsidebar = "/ajaxSidebar"
 ajaxmatpel = "/ajaxMatapel"
+ajaxtask  = "/ajaxTask"
 
 
 # ROUTE GET AJAX
@@ -49,7 +51,7 @@ getajaxlevel = "/get_level_data"
 getajaxkampus = "/get_kampus_data"
 getajaxsidebar = "/get_sidebar_data"
 getajaxmatpel = "/get_matapel_data"
-
+getajaxtask = "/get_task_data"
 
 # CRUD ROUTE
 insertaccountcrud = "useraccount.create_useraccount"
@@ -73,6 +75,10 @@ insertmatpelcrud = "matapelaccount.creatematapel"
 deletematpelcrud = "/matapel/delete/${productId}"
 updatematpelcrud = "/matapelupdate/${productId}"
 
+inserttaskcrud = "taskaccount.createtask"
+deletetaskcrud = "/task/delete/${productId}"
+updatetaskcrud = "/taskupdate/${productId}"
+
 
 server = "localhost"
 user_server = "root"
@@ -86,6 +92,7 @@ Leveluser = "LevelUser"
 Kampus = "Kampus"
 Sidebarpage = "Page"
 MataKuliah = "Matpel"
+Taskmk = "Task"
 
 # ROUTE GET COLUMN
 page1 = "account"
@@ -93,3 +100,4 @@ page2 = "leveluser"
 page3 = "sidebar"
 page6 = "kampus"
 page7 = "matapelajaran"
+page8 = "task"

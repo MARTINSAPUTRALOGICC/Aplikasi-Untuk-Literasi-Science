@@ -299,6 +299,39 @@ $(document).ready(function() {
 
 });
 </script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    function setupToggle(prefix) {
+        const methodSelect = document.getElementById(prefix + "_method");
+        const fileField = document.querySelector("." + prefix + "-field.file-field");
+        const urlField = document.querySelector("." + prefix + "-field.url-field");
+
+        if (!methodSelect) return;
+
+        function toggleField() {
+            if (methodSelect.value === "file") {
+                fileField.classList.remove("d-none");
+                urlField.classList.add("d-none");
+            } else if (methodSelect.value === "url") {
+                urlField.classList.remove("d-none");
+                fileField.classList.add("d-none");
+            } else {
+                // kalau default kosong, sembunyikan semua
+                fileField.classList.add("d-none");
+                urlField.classList.add("d-none");
+            }
+        }
+
+        methodSelect.addEventListener("change", toggleField);
+        toggleField(); // jalanin sekali saat load
+    }
+
+    // aktifkan untuk video, image, audio
+    ["video", "image", "audio"].forEach(setupToggle);
+});
+</script>
+
+
 
 
 

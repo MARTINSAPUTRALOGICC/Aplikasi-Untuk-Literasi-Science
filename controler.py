@@ -2,10 +2,11 @@ import hashlib
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from model import db
-from helper import delete_record, create_record,update_record
+from helper import delete_record, create_record, update_record, save_file_with_label
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 import re
+import os
 import traceback
 from flask import (
     Blueprint,
@@ -21,10 +22,23 @@ from flask import (
     make_response,
 )
 
-from model import db, model_useraccount, model_level,model_page,model_page_setting,model_setting_crud,model_kampus, model_matapel
+from model import db, model_useraccount, model_level,model_page,model_page_setting,model_setting_crud,model_kampus, model_matapel, model_task
 
-from form_field import RoleForm, AccountUpdate, KampusForm, PageForm, MataPelajaranForm
-from constant import Dashboard, Leveluser, Kampus, Sidebarpage, MataKuliah
+from form_field import (
+    RoleForm,
+    AccountUpdate,
+    KampusForm,
+    PageForm,
+    MataPelajaranForm,
+    TaskForm,
+    TaskFormUpdate,
+)
+from constant import Dashboard, Leveluser, Kampus, Sidebarpage, MataKuliah, Taskmk
+
+
+task_bp = Blueprint("task_bp",__name__, url_prefix="/task")
+taskaccount_bp = Blueprint("taskaccount",__name__)
+updatetask = Blueprint("taskupdate", __name__)
 
 matapel_bp = Blueprint("matapel_bp",__name__, url_prefix="/matapel")
 matapelaccount_bp = Blueprint("matapelaccount",__name__)
@@ -48,6 +62,173 @@ updatesidebar = Blueprint("sidebarupadate", __name__)
 
 update_page = Blueprint("update_page", __name__)
 update_crud = Blueprint("update_crud", __name__)
+
+
+@taskaccount_bp.route("/taskaccount/create", methods=["GET", "POST"])
+def createtask():
+    form = TaskForm()
+    if form.validate_on_submit():
+        # ✅ Cek apakah label_task sudah ada di database
+        existing_task = model_task.query.filter_by(
+            label_task=form.label_task.data,
+            id_kampus=form.id_kampus.data,  # optional: biar unik per kampus
+        ).first()
+
+        if existing_task:
+            flash("Label Task sudah digunakan, silakan pilih nama lain!", "danger")
+            return redirect(url_for("task_bp.createtask"))
+
+        # Video
+        if form.video_method.data == "file" and form.file_video.data:
+            video_path = save_file_with_label(form.file_video.data, "video", form.label_task.data, form.id_kampus.data, form.id_matkul.data)
+        else:
+            video_path = form.url_video.data
+
+        if form.image_method.data == "file" and form.file_image.data:
+            image_path = save_file_with_label(
+                form.file_image.data,
+                "images",
+                form.label_task.data,
+                form.id_kampus.data,
+                form.id_matkul.data,
+            )
+        else:
+            image_path = form.url_image.data
+
+        if form.audio_method.data == "file" and form.file_audio.data:
+            audio_path = save_file_with_label(
+                form.file_audio.data,
+                "audio",
+                form.label_task.data,
+                form.id_kampus.data,
+                form.id_matkul.data,
+            )
+        else:
+            audio_path = form.url_audio.data
+
+        # Save to database
+        new_task = model_task(
+            id_matkul=form.id_matkul.data,
+            id_kampus=form.id_kampus.data,
+            label_task=form.label_task.data,
+            introduction=form.introduction.data,
+            video=video_path,
+            gambar=image_path,
+            audio=audio_path,
+        )
+        db.session.add(new_task)
+        db.session.commit()
+
+        flash("Task berhasil disimpan!", "success")
+        return redirect(url_for(Taskmk))
+
+
+@updatetask.route("/taskupdate/<int:id_task>", methods=["POST"], endpoint="taskupdate")
+def update_task(id_task):
+    try:
+        form = TaskFormUpdate()
+        task = model_task.query.filter_by(id_task=id_task).first()
+
+        if not task:
+            return jsonify({"success": False, "error": "Task tidak ditemukan"}), 404
+
+        if form.validate_on_submit():
+            # === Introduction ===
+            if form.introduction.data:
+                task.introduction = form.introduction.data
+
+            # === Video ===
+            if form.video_method.data == "file" and form.file_video.data:
+                task.video = save_file_with_label(
+                    form.file_video.data,
+                    "videos",
+                    task.label_task,
+                    task.id_kampus,
+                    task.id_matkul,
+                )
+            elif form.video_method.data == "url" and form.url_video.data:
+                task.video = form.url_video.data
+
+            # === Image ===
+            if form.image_method.data == "file" and form.file_image.data:
+                task.gambar = save_file_with_label(
+                    form.file_image.data,
+                    "images",
+                    task.label_task,
+                    task.id_kampus,
+                    task.id_matkul,
+                )
+            elif form.image_method.data == "url" and form.url_image.data:
+                task.gambar = form.url_image.data
+
+            # === Audio ===
+            if form.audio_method.data == "file" and form.file_audio.data:
+                task.audio = save_file_with_label(
+                    form.file_audio.data,
+                    "audio",
+                    task.label_task,
+                    task.id_kampus,
+                    task.id_matkul,
+                )
+            elif form.audio_method.data == "url" and form.url_audio.data:
+                task.audio = form.url_audio.data
+
+            db.session.commit()
+            return (
+                jsonify({"success": True, "message": "Task berhasil diperbarui"}),
+                200,
+            )
+
+        # Kalau form invalid
+        print("❌ FORM ERRORS:", form.errors)
+        return jsonify({"success": False, "error": form.errors}), 400
+
+    except Exception as e:
+        print("❌ Exception di Task:", str(e))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@task_bp.route("/delete/<int:id_task>", methods=["POST"])
+def delete_task(id_task):
+    try:
+        task = model_task.query.filter_by(id_task=id_task).first()
+
+        if not task:
+            return jsonify({"status": "error", "message": "Task tidak ditemukan"}), 404
+
+        file_fields = ["video", "gambar", "audio"]
+        deleted_files = []
+
+        # hapus file fisik kalau ada
+        for field in file_fields:
+            file_path = getattr(task, field)
+            if file_path:
+                abs_path = os.path.join(current_app.root_path, "static", file_path)
+                if os.path.exists(abs_path):
+                    os.remove(abs_path)
+                    print(f"🗑️ File {field} dihapus: {abs_path}")
+                else:
+                    print(f"⚠️ File {field} tidak ditemukan di path: {abs_path}")
+                deleted_files.append(field)
+
+        # hapus record dari DB
+        db.session.delete(task)
+        db.session.commit()
+
+        # buat pesan sesuai kondisi
+        if deleted_files:
+            msg = f"Task {id_task} berhasil dihapus beserta file: {', '.join(deleted_files)}"
+            print(f"✅ Record Task {id_task} berhasil dihapus + file: {deleted_files}")
+        else:
+            msg = f"Task {id_task} berhasil dihapus (tidak ada file terkait)"
+            print(f"✅ Record Task {id_task} berhasil dihapus (tidak ada file)")
+
+        return jsonify({"status": "success", "message": msg}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print("❌ Error saat hapus task:", str(e))
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @matapel_bp.route("/delete/<int:record_id>", methods=["POST"])

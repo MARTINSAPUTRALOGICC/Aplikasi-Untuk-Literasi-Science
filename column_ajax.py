@@ -42,3 +42,16 @@ columns_matapel = [
     {"data": "nama_mk", "className": "text-center align-middle"},
     {"data": None, "className": "text-center align-middle", "orderable": False},
 ]
+
+
+columns_task = [
+    {"data": "No", "className": "text-center align-middle"},
+    {"data": "id_matkul", "className": "text-center align-middle"},
+    {"data": "id_kampus", "className": "text-center align-middle"},
+    {"data": "label_task", "className": "text-center align-middle"},
+    {"data": "introduction", "className": "text-center align-middle"},
+    {"data": "video", "className": "text-center align-middle"},
+    {"data": "gambar", "className": "text-center align-middle"},
+    {"data": "audio", "className": "text-center align-middle"},
+    {"data": None, "className": "text-center align-middle", "orderable": False},
+]

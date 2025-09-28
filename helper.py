@@ -2,7 +2,84 @@ from flask import jsonify
 from sqlalchemy.exc import SQLAlchemyError
 from model import *
 
-# DROP DOWN SELECT
+# DROP DOWN SELE
+import os
+from werkzeug.utils import secure_filename
+from flask import current_app
+import re
+
+def slugify_label(label: str) -> str:
+    """
+    Ubah label_task jadi aman untuk nama file:
+    - Ganti spasi dengan underscore
+    - Hapus karakter selain huruf, angka, underscore
+    - Lowercase
+    """
+    # Ganti spasi dengan underscore
+    text = label.strip().replace(" ", "_")
+
+    # Hapus karakter selain alfanumerik + underscore
+    text = re.sub(r"[^A-Za-z0-9_]", "", text)
+
+    # Biar konsisten, lowercase semua
+    return text.lower()
+
+
+def save_file_with_label(file, folder_name, label, id_kampus, kode_matkul):
+    if not file:
+        return None
+
+    # Bersihkan label dulu (jadi aman untuk filename)
+    clean_label = slugify_label(label)
+
+    # Ambil ekstensi file
+    ext = os.path.splitext(file.filename)[1]
+
+    # Format nama file
+    filename = secure_filename(f"{clean_label}{ext}")
+
+    # Buat folder bertingkat: static/videos/<id_kampus>/<kode_matkul>
+    upload_folder = os.path.join(
+        current_app.root_path, "static", folder_name, str(id_kampus), str(kode_matkul)
+    )
+    os.makedirs(upload_folder, exist_ok=True)
+
+    # Path lengkap penyimpanan
+    file_path = os.path.join(upload_folder, filename)
+    file.save(file_path)
+
+    # Path relatif untuk disimpan ke DB
+    return f"{folder_name}/{id_kampus}/{kode_matkul}/{filename}"
+
+
+def clear_task_folder(folder_name, id_kampus, kode_matkul):
+    """
+    Hapus semua file dalam folder static/<folder_name>/<id_kampus>/<kode_matkul>
+    tapi tidak menghapus foldernya.
+    """
+    folder_path = os.path.join(
+        current_app.root_path, "static", folder_name, str(id_kampus), str(kode_matkul)
+    )
+
+    if os.path.exists(folder_path) and os.path.isdir(folder_path):
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            try:
+                if os.path.isfile(file_path):  # hanya file
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"❌ Gagal hapus {file_path}: {e}")
+        return True
+    return False
+
+
+def truncate_text(text, length=50):
+    """Potong teks jika lebih panjang dari batas (default 50 karakter)."""
+    if text and len(text) > length:
+        return text[:length] + "..."
+    return text if text else "-"
+
+
 def fetch_level_user_options():
     role_accounts = model_level.query.all()
     return [(role.name_level, str(role.id_level)) for role in role_accounts]
@@ -23,6 +100,16 @@ def fetch_kampus_super():
 def fetch_kampus_admin(id):
     kampus_data = model_kampus.query.filter_by(id_kampus=id).all()
     return [(kampus.name_kampus, str(kampus.id_kampus)) for kampus in kampus_data]
+
+
+def fetch_matkul_super():
+    matkul_data = model_matapel.query.all()
+    return [(matkul.nama_mk, str(matkul.id_mk)) for matkul in matkul_data]
+
+
+def fetch_matkul_admin(id):
+    matkul_data = model_matapel.query.filter_by(kode_kampus=id).all()
+    return [(matkul.nama_mk, str(matkul.id_mk)) for matkul in matkul_data]
 
 
 def fetch_active(status: int) -> str:
@@ -58,6 +145,11 @@ def fetch_kampus(id_kampus: int) -> str:
     return kampus.name_kampus if kampus else "Unknown"
 
 
+def fetch_matpel(id_kampus: int) -> str:
+    kampus = model_matapel.query.filter(
+        model_matapel.kode_kampus == id_kampus, model_matapel.kode_kampus != 1
+    ).first()
+    return kampus.name_kampus if kampus else "Unknown"
 
 
 # CREATE
